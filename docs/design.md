@@ -167,7 +167,7 @@ quit
 
 ### 06 예외와 검증 — 45분
 - 읽을 글: Exception Handling in Java / Checked and Unchecked Exceptions in Java / Create a Custom Exception in Java / Chained Exceptions in Java / Difference Between Throw and Throws in Java / Guide to Inheritance in Java / Guide to the super Java Keyword
-- 내용: 커스텀 예외를 설계한다(`InvalidEntryException extends RuntimeException`, `super(message, cause)`). checked와 unchecked의 선택 기준을 정한다. 입력 검증(음수 금액, 잘못된 날짜, 모르는 카테고리, 메모의 쉼표)을 구현하고 `assertThatThrownBy`로 테스트한다.
+- 내용: 커스텀 예외를 설계한다(`InvalidEntryException extends RuntimeException`, `super(message, cause)`). checked와 unchecked의 선택 기준을 정한다. 입력 검증(음수 금액, 잘못된 날짜, 모르는 카테고리, 메모의 쉼표, 잘못된 태그)을 구현한다. 진입점은 `Entry.parse`이고, 메모·태그 검증은 `Income`·`Expense`의 compact constructor에 둔다. `Money.of(String)`은 `12000`·`12,000` 형식만 받도록 엄격하게 바꾼다(`1,2,3`, `1e3` 거부). 주어진 테스트는 `EntryValidationTest`(6)다. 오류 케이스는 모두 `assertThatThrownBy`로 메시지와 cause까지 검증한다. 학습자가 따로 작성할 테스트는 없다. 스텁은 `InvalidEntryException`뿐이다. `Entry.parse`는 학습자의 `Entry`에 추가하는 메서드라 스텁이 없다. 그래서 start의 red는 먼저 컴파일 실패이고, `parse`를 추가한 뒤에는 오류 케이스의 실행 실패다.
 - 완료 기준: 오류 케이스 테스트 통과.
 - 실무 체크포인트: 예외 삼키지 않기, 원인(cause) 보존, 메시지에 맥락 포함.
 

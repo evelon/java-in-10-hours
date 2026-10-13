@@ -194,3 +194,33 @@ build/test-results: MoneyTest 10, MoneyBoundaryTest 5, MoneyRecordTest 1, Double
   - `expenseByCategory`는 `LinkedHashMap`을 `Collections.unmodifiableMap`으로 감싸 돌려준다. `Map.copyOf`는 순서를 보장하지 않는다(체크포인트 후보). 동률 정렬은 `groupingBy`의 `HashMap` 순서에 기대지 않고 `thenComparing(comparingByKey())`로 명시한다.
   - 예산은 `EnumMap`에 두므로 `overBudget`이 별도 정렬 없이 Category 선언 순이 된다. 07 `LedgerService`는 세션 예산을 `Collection<Budget>`으로 넘기면 된다. 같은 카테고리를 다시 설정하면 나중 것이 이긴다.
   - `Money.toString`은 이제 `format(amount)`를 쓴다. 09 리포트의 순액은 `Money.format(totalIncome.difference(totalExpense))`다.
+
+## 06 예외와 검증
+
+- 시작: `step-05-done`(그 뒤의 API 태그 없음).
+- 주어진 테스트: `src/test/java/ledger/domain/EntryValidationTest.java` 6개(`@ParameterizedTest` 3개 포함, 실행 15건). API.md 메시지 표의 06 항목과 03·04의 IAE 메시지가 `Entry.parse`를 거쳐 그대로 나오는지, cause가 보존되는지 검증한다. 스텁: `InvalidEntryException`(생성자 본문 `UnsupportedOperationException`). `step-06-start` = `step-05-done` + 위 테스트 + 스텁.
+- 학습자 테스트: 없음. 주어진 테스트가 `assertThatThrownBy`로 5가지 오류 유형을 모두 다룬다. 7절 06에 명시했다.
+
+start에서 red 확인(학습자가 겪는 순서):
+1. 그대로 `./gradlew test`: `compileTestJava FAILED`, `cannot find symbol`(`Entry.parse`)만 나온다.
+2. `Entry.parse`만 추가한 뒤: `58 tests completed, 14 failed`. 성공 케이스(`parsesValidInput`)만 통과하고, 오류 케이스 14건은 모두 실패한다(스텁 예외 생성자의 UOE).
+
+done 확인:
+
+```
+./gradlew clean build                        → BUILD SUCCESSFUL
+build/test-results: 05까지 43 + EntryValidationTest 15, failures=0, errors=0
+./gradlew -q run --args="12000 3500 1000000" → 01 기대 출력과 같다
+./gradlew -q run --args="1,2,3"              → IllegalArgumentException: 금액 형식 오류: 1,2,3
+```
+
+- (a) 테스트: 58건 통과(05까지 43 + 주어진 06 실행 15). 실제로 실행해 확인했다. `git diff step-06-start -- src/test`가 비어 있고, `MoneyTest`는 03 이후 그대로다. `docs/API.md`는 `api-v1`과 같다.
+- (b) 설계 대비:
+  - 03 (c)에서 미룬 결정으로 `Money.of(String)`을 엄격하게 바꿨다. 정규식 `-?(\d+|\d{1,3}(,\d{3})+)(\.\d+)?`으로 형식만 거른다. 부호와 소수점은 형식상 허용하고, 생성자의 `음수 금액`·`원 미만 금액` 검증에 넘긴다. 그래야 메시지 표가 유지된다. 시그니처는 그대로이고 동작만 좁아졌다.
+  - 형식 오류는 이제 `NumberFormatException`을 cause로 갖지 않는다. 정규식에서 먼저 거르기 때문이다.
+  - 7절 06에 태그 검증, `Money.of` 변경, 주어진 테스트, 2단계 red를 적었다.
+- (c) 다음 단계 영향:
+  - 메모·태그 검증은 package-private `EntryRules`(`ledger.domain`)에 모았다. 04에서 예고한 `Income`·`Expense` 중복 제거다. 공개 API가 아니므로 API.md에는 넣지 않았다.
+  - `Entry.parse`의 검증 순서는 날짜 → 카테고리 → 금액 → 메모·태그다. 한 행에 오류가 여럿이면 앞의 것 하나만 보고한다. 08 임포트의 `N행: <메시지>`는 이 메시지를 쓴다.
+  - 날짜는 `LocalDate.parse`(ISO, STRICT)다. `2026-02-30`도 `날짜 형식 오류`가 된다. `today` 변환은 09 CLI의 몫이다.
+  - `Money` 안에서 정규식 static 필드는 `ZERO`보다 앞에 둔다. `ZERO`를 `of(String)`으로 만들도록 바뀌어도 초기화 순서 때문에 NPE가 나지 않게 하기 위해서다.

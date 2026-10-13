@@ -4,8 +4,12 @@ import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.util.Locale;
 import java.util.Objects;
+import java.util.regex.Pattern;
 
 public record Money(BigDecimal amount) implements Comparable<Money> {
+
+    // "12000", "12,000"만 받는다. 부호와 소수점은 형식으로 받고 음수·원 미만 검증에 넘긴다
+    private static final Pattern AMOUNT = Pattern.compile("-?(\\d+|\\d{1,3}(,\\d{3})+)(\\.\\d+)?");
 
     public static final Money ZERO = of(0);
 
@@ -27,11 +31,10 @@ public record Money(BigDecimal amount) implements Comparable<Money> {
     }
 
     public static Money of(String text) {
-        try {
-            return new Money(new BigDecimal(text.replace(",", "")));
-        } catch (NumberFormatException e) {
-            throw new IllegalArgumentException("금액 형식 오류: " + text, e);
+        if (!AMOUNT.matcher(text).matches()) {
+            throw new IllegalArgumentException("금액 형식 오류: " + text);
         }
+        return new Money(new BigDecimal(text.replace(",", "")));
     }
 
     public Money plus(Money other) {

@@ -12,8 +12,8 @@ public record Income(LocalDate date, Category category, Money amount, String mem
         Objects.requireNonNull(date, "date");
         Objects.requireNonNull(category, "category");
         Objects.requireNonNull(amount, "amount");
-        Objects.requireNonNull(memo, "memo");
-        tags = Set.copyOf(tags);
+        memo = EntryRules.memo(memo);
+        tags = EntryRules.tags(tags);
     }
 
     public Income(LocalDate date, Category category, Money amount, String memo, String... tags) {
