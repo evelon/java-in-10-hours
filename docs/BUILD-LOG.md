@@ -74,3 +74,28 @@ java -cp out:lib/commons-lang3-3.21.0.jar ledger.Main 12000 3500 1000000
 - (a) 테스트: 없음(확인 명령). 위 출력은 모두 실제로 실행해 확인했다. Windows에서는 클래스패스 구분자가 `;`이다.
 - (b) 설계 대비: 7절 01에 `Money`·`Main`의 내용과 소스 위치(`src/ledger/...`)를 명시했다. `Money.format`은 `Locale.ROOT`로 포맷한다. 기본 Locale에 맡기면 환경에 따라 구분자가 바뀐다.
 - (c) 다음 단계 영향: 02는 `git mv src/ledger src/main/java/ledger`로 옮기고, `./gradlew run --args="12000 3500 1000000"`의 출력이 위와 같아야 한다. 7절 02의 "00~01 코드를 옮긴다"는 02에서 고친다. 03에서 `Money`를 재작성하면 `Money.format(long)`이 없어지므로 `Main`도 함께 고친다. `StringUtils`는 계속 쓰므로 `commons-lang3` 의존성은 유지한다.
+
+## 02 Gradle 전환
+
+- 버전: Gradle **9.8.1**(2026-10-07, 최신 안정판), foojay-resolver-convention **1.0.0**, toolchain으로 받은 JDK는 Temurin 21.0.12.1.
+- wrapper는 `gradle wrapper --gradle-version 9.8.1 --distribution-type bin --gradle-distribution-sha256-sum <sha>`로 생성했다. `distributionSha256Sum`으로 배포본을 고정한다. `step-02-start` 커밋은 wrapper 파일 4개(`gradlew`, `gradlew.bat`, `gradle/wrapper/*`)만 담는다.
+
+확인 명령:
+
+```
+./gradlew build
+./gradlew -q run --args="12000 3500 1000000"
+git status --short --ignored
+git ls-files gradle/wrapper
+```
+
+기대 결과:
+- `build`: `BUILD SUCCESSFUL`, `:test NO-SOURCE`.
+- `run`: 01의 기대 출력과 같다.
+- `git status`: `build/`, `.gradle/`이 `!!`(ignored)로 나온다.
+- `git ls-files`: `gradle-wrapper.jar`, `gradle-wrapper.properties`가 나온다.
+
+- (a) 테스트: 없음(확인 명령). 위 항목은 모두 실제로 실행해 확인했다. `run` 출력은 01 기대 출력과 `diff`로 대조했다. class 파일은 major version 65이고, `runtimeClasspath`에 `commons-lang3:3.21.0`이 들어간다.
+- toolchain 자동 다운로드: 빈 `GRADLE_USER_HOME`에서 `-Dorg.gradle.java.installations.auto-detect=false`로 빌드해 foojay가 JDK 21을 내려받는 것을 확인했다(약 36초). `-P`로 넘기면 Gradle 9.8.1에서 deprecation 경고가 나므로 `-D`를 쓴다.
+- (b) 설계 대비: 7절 02의 옮길 대상을 `ledger.*`로 고치고, `.gitignore`에서 00~01 항목을 지운다는 점과 `run` 확인 인자를 명시했다. 플러그인은 설계대로 `java`와 `application`을 둘 다 적었다(`application`이 `java`를 포함하지만 학습용으로 명시).
+- (c) 다음 단계 영향: 03은 `build.gradle.kts`에 JUnit BOM, `junit-jupiter`, `testRuntimeOnly("org.junit.platform:junit-platform-launcher")`, AssertJ, `useJUnitPlatform()`을 추가한다. 버전은 03 작업 시점의 최신 안정판으로 정한다.

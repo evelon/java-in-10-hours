@@ -143,8 +143,8 @@ quit
 ### 02 Gradle 전환 — 50분
 - 읽을 글: 없음(시리즈 범위 밖). 단계 문서에 Gradle 최소 설명을 직접 쓴다.
 - 제공: wrapper 파일(`gradlew`, `gradlew.bat`, `gradle/wrapper/`).
-- 내용: 00~01 코드를 Gradle 프로젝트로 옮긴다. `src/main/java`, `settings.gradle.kts`(foojay 플러그인), `build.gradle.kts`(`java`·`application` 플러그인, toolchain 21, `repositories`, `dependencies`, `mainClass`), `.gitignore`(`build/`, `.gradle/`, IDE 파일). 01에서 `-cp`로 넣던 `commons-lang3`가 `implementation` 한 줄이 되는 것을 확인한다.
-- 완료 기준: `./gradlew build` 성공, `./gradlew run`으로 실행. 테스트는 아직 없다.
+- 내용: 01 코드(`ledger.*`)를 Gradle 프로젝트로 옮긴다(`git mv src/ledger src/main/java/ledger`). `settings.gradle.kts`(foojay 플러그인), `build.gradle.kts`(`java`·`application` 플러그인, toolchain 21, `repositories`, `dependencies`, `mainClass`), `.gitignore`(00~01의 `out/`·`hello.jar`·`lib/`를 지우고 `build/`, `.gradle/`, IDE 파일). 01에서 `-cp`로 넣던 `commons-lang3`가 `implementation` 한 줄이 되는 것을 확인한다.
+- 완료 기준: `./gradlew build` 성공, `./gradlew run --args="12000 3500 1000000"`의 출력이 01과 같다. 테스트는 아직 없다(`test` 태스크는 `NO-SOURCE`).
 - 실무 체크포인트: `build/`는 커밋하지 않는다. wrapper는 커밋한다. `implementation`과 `testImplementation`의 차이.
 
 ### 03 클래스와 JUnit 5 — 60분
