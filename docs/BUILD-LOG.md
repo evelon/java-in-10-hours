@@ -168,3 +168,29 @@ build/test-results: MoneyTest 10, MoneyBoundaryTest 5, CategoryTest 7, EntryTest
 - (a) 테스트: 31건 통과(03의 15 + 주어진 04 실행 14 + 학습자 예시 2). 실제로 실행해 확인했다. `git diff step-03-start -- MoneyTest.java`가 비어 있다. `Money`를 record로 바꾼 뒤에도 03 테스트를 고치지 않고 통과했다. 주어진 04 테스트도 `step-04-start` 이후 바뀌지 않았다.
 - (b) 설계 대비: 7절 04에 주어진 테스트 구성, `Money` 스텁이 없는 이유, `double` 테스트를 학습자가 쓴다는 점을 적었다. `CategoryTest`에 `new String("식비")` 케이스를 넣었다. `==`로 비교하는 구현은 리터럴끼리는 우연히 통과하므로, 체크포인트("문자열은 `equals`")를 테스트로 잡기 위해서다. 처음 고른 `double` 예시 `1000 * 1.1`은 double에서도 정확히 `1100.0`이라 실패했다. `1500 * 1.1`(= `1650.0000000000002`)로 바꿨다. 예시 값은 jshell로 확인한 것만 쓴다.
 - (c) 다음 단계 영향: varargs 생성자는 `Set.of(tags)`를 쓰면 중복 태그에서 IAE가 난다. `Set.copyOf(List.of(tags))`를 쓴다(체크포인트 후보). 메모 `null`은 NPE다(공통 규칙). 메모가 없으면 `""`를 넘긴다. 06의 메모·태그 검증은 `Income`·`Expense`의 compact constructor에 넣는다. 지금은 두 record에 같은 코드가 중복되어 있다. 06에서 검증이 늘면 `ledger.domain` 안의 package-private 헬퍼로 모은다. `Money.ZERO`·`difference`·`percentOf`·`format`은 아직 없다(05).
+
+## 05 컬렉션과 스트림
+
+- 시작: `step-04-done`(그 뒤의 API 태그 없음).
+- 주어진 테스트(`src/test/java/ledger/domain/`): `LedgerTest` 7개, `MoneyReportTest` 3개(`@CsvSource` 3건 포함, 실행 5건). 데이터는 09 데모의 2026-10 값(수입 3,000,000원, 지출 845,300원, 비율 59·37·4)에 맞췄다. 다른 달 항목을 섞어 월 필터를 함께 검증한다. 스텁: `Budget`, `BudgetOverrun`, `Ledger`. `Money`는 스텁이 없다(학습자 코드를 고친다). `step-05-start` = `step-04-done` + 위 테스트 2개 + 스텁 3개.
+- 학습자 테스트: 05는 따로 정하지 않았다(설계 7절 05에 없음).
+
+start에서 red 확인(학습자가 겪는 순서):
+1. 그대로 `./gradlew test`: `compileTestJava FAILED`, `cannot find symbol`(`Money.ZERO`·`difference`·`format`·`percentOf`)만 나온다.
+2. `Money`만 고친 뒤: `43 tests completed, 7 failed`. 실패는 `LedgerTest` 7개 전부(스텁의 `UnsupportedOperationException`)이고, `MoneyReportTest`를 포함한 나머지는 통과한다.
+
+done 확인:
+
+```
+./gradlew clean test                         → BUILD SUCCESSFUL
+build/test-results: MoneyTest 10, MoneyBoundaryTest 5, MoneyRecordTest 1, DoublePitfallTest 2, CategoryTest 7, EntryTest 6, MoneyReportTest 5, LedgerTest 7, failures=0, errors=0
+./gradlew build                              → BUILD SUCCESSFUL
+./gradlew -q run --args="12000 3500 1000000" → 01 기대 출력과 같다
+```
+
+- (a) 테스트: 43건 통과(04까지 31 + 주어진 05 실행 12). 실제로 실행해 확인했다. `git diff step-05-start -- src/test`가 비어 있고, `MoneyTest`는 03 이후 그대로다. `docs/API.md`는 `api-v1`과 같다(시그니처 변경 없음).
+- (b) 설계 대비: 7절 05에 `Money` 리포트 메서드 추가, 주어진 테스트 구성, 2단계 red를 적었다. 반복문과 스트림 중에서는 이렇게 남겼다. 합계와 카테고리별 집계는 스트림이다(`filter`→`reduce`, `groupingBy`+`reducing`). `overBudget`은 반복문이다. 예산마다 조회·비교·생성을 하는 부분은 반복문이 더 읽기 쉽다. `percentOf`의 0원 IAE 메시지는 `0원 대비 비율 계산 불가: <this>`다. 메시지 표에는 없으므로 테스트는 타입만 검증한다.
+- (c) 다음 단계 영향:
+  - `expenseByCategory`는 `LinkedHashMap`을 `Collections.unmodifiableMap`으로 감싸 돌려준다. `Map.copyOf`는 순서를 보장하지 않는다(체크포인트 후보). 동률 정렬은 `groupingBy`의 `HashMap` 순서에 기대지 않고 `thenComparing(comparingByKey())`로 명시한다.
+  - 예산은 `EnumMap`에 두므로 `overBudget`이 별도 정렬 없이 Category 선언 순이 된다. 07 `LedgerService`는 세션 예산을 `Collection<Budget>`으로 넘기면 된다. 같은 카테고리를 다시 설정하면 나중 것이 이긴다.
+  - `Money.toString`은 이제 `format(amount)`를 쓴다. 09 리포트의 순액은 `Money.format(totalIncome.difference(totalExpense))`다.

@@ -1,8 +1,11 @@
 package ledger.domain;
 
+import java.util.Objects;
+
 public record Budget(Category category, Money limit) {
 
     public Budget {
-        throw new UnsupportedOperationException("TODO: step 05");
+        Objects.requireNonNull(category, "category");
+        Objects.requireNonNull(limit, "limit");
     }
 }

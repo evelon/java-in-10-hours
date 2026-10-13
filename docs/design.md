@@ -161,7 +161,7 @@ quit
 
 ### 05 컬렉션과 스트림 — 60분
 - 읽을 글: Guide to the Java ArrayList / A Guide to Java HashMap / A Guide to HashSet in Java / The Basics of Java Generics / Guide to the Diamond Operator in Java / A Guide to Iterator in Java / Comparator and Comparable in Java / Guide To Java Optional / Functional Interfaces in Java / Introduction to Java Streams / Guide to Java Collectors
-- 내용: `Budget`을 추가하고, `Ledger`에 월별 합계, 카테고리별 합계, 예산 초과 판단을 구현한다. 카테고리로 예산을 찾는 메서드는 `Optional`을 반환한다. 같은 집계를 반복문 버전과 스트림 버전으로 한 번씩 써 보고, 남길 버전을 고른다.
+- 내용: `Budget`을 추가하고, `Ledger`에 월별 합계, 카테고리별 합계, 예산 초과 판단을 구현한다. 카테고리로 예산을 찾는 메서드는 `Optional`을 반환한다. 같은 집계를 반복문 버전과 스트림 버전으로 한 번씩 써 보고, 남길 버전을 고른다. `Money`에 리포트용 메서드(`ZERO`, `difference`, `percentOf`, `format`)를 추가한다. 주어진 테스트는 `LedgerTest`(7)와 `MoneyReportTest`(3)다. 스텁은 `Budget`, `BudgetOverrun`, `Ledger`이고, `Money`는 학습자 코드를 고치는 것이므로 스텁이 없다. 그래서 start의 red는 먼저 컴파일 실패(`Money`의 새 메서드 없음)이고, `Money`를 고친 뒤에는 `LedgerTest`의 실행 실패다.
 - 완료 기준: 집계 테스트 통과.
 - 실무 체크포인트: 컬렉션을 그대로 반환하지 않고 `List.copyOf`나 불변 뷰를 쓴다. 순회 중 삭제는 `ConcurrentModificationException`을 낸다(`removeIf` 사용). `BigDecimal.divide`는 scale과 `RoundingMode`를 명시한다(안 하면 `ArithmeticException`). 스트림 남용(가독성 저하) 경계.
 

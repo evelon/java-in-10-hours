@@ -7,6 +7,8 @@ import java.util.Objects;
 
 public record Money(BigDecimal amount) implements Comparable<Money> {
 
+    public static final Money ZERO = of(0);
+
     public Money {
         Objects.requireNonNull(amount, "amount");
         if (amount.signum() < 0) {
@@ -40,6 +42,25 @@ public record Money(BigDecimal amount) implements Comparable<Money> {
         return new Money(amount.subtract(other.amount));
     }
 
+    public BigDecimal difference(Money other) {
+        return amount.subtract(other.amount);
+    }
+
+    public int percentOf(Money whole) {
+        if (whole.amount.signum() == 0) {
+            throw new IllegalArgumentException("0원 대비 비율 계산 불가: " + this);
+        }
+        // scale과 RoundingMode를 주지 않으면 나누어떨어지지 않을 때 ArithmeticException이 난다
+        return amount.multiply(BigDecimal.valueOf(100))
+                .divide(whole.amount, 0, RoundingMode.HALF_UP)
+                .intValueExact();
+    }
+
+    public static String format(BigDecimal won) {
+        // 기본 Locale에 맡기면 환경에 따라 구분자가 '.'이 될 수 있다
+        return String.format(Locale.ROOT, "%,d원", won.toBigInteger());
+    }
+
     @Override
     public int compareTo(Money other) {
         return amount.compareTo(other.amount);
@@ -47,7 +68,6 @@ public record Money(BigDecimal amount) implements Comparable<Money> {
 
     @Override
     public String toString() {
-        // 기본 Locale에 맡기면 환경에 따라 구분자가 '.'이 될 수 있다
-        return String.format(Locale.ROOT, "%,d원", amount.toBigInteger());
+        return format(amount);
     }
 }
