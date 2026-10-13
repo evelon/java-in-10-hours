@@ -136,7 +136,7 @@ quit
 
 ### 01 패키지와 클래스패스 — 50분
 - 읽을 글: Guide to Java Packages / Access Modifiers in Java / A Guide to the Static Keyword in Java / The "final" Keyword in Java / Class Loaders in Java
-- 내용: `package` 선언과 디렉터리 구조, `javac -d out`. 외부 JAR(`commons-lang3`)을 `-cp`로 추가한다. 패키지 2개(`ledger.domain`, `ledger`)로 나눈 간단한 `Money` 유틸과 이를 쓰는 `Main`을 만든다. 접근 제어자를 바꿔 가며 다른 패키지에서 무엇이 보이는지 확인한다. 파일이 늘 때 수동 빌드가 번거로운 지점(순서, 클래스패스 관리, 테스트 실행 불가)을 직접 겪는다.
+- 내용: `package` 선언과 디렉터리 구조, `javac -d out`. 외부 JAR(`commons-lang3`)을 `-cp`로 추가한다. 패키지 2개(`ledger.domain`, `ledger`)로 나눈 간단한 `Money` 유틸(`format(long)` → `12,000원`)과 이를 쓰는 `Main`(인자로 받은 금액들을 `StringUtils.leftPad`로 오른쪽 정렬해 출력하고 합계를 출력)을 만든다. 소스는 `src/ledger/...`에 둔다. 00의 `Hello.java`는 삭제한다. JAR은 `lib/`에 받아 두고 커밋하지 않는다. 접근 제어자를 바꿔 가며 다른 패키지에서 무엇이 보이는지 확인한다. 파일이 늘 때 수동 빌드가 번거로운 지점(순서, 클래스패스 관리, 테스트 실행 불가)을 직접 겪는다.
 - 완료 기준: 스크립트 없이 수동 명령만으로 빌드·실행한다.
 - 실무 체크포인트: 클래스패스에서 JAR을 빼면 `NoClassDefFoundError`가 난다. 왜 빌드 도구가 필요한가를 커밋 메시지나 README에 한 문단으로 적는다.
 
