@@ -70,7 +70,7 @@ src/main/java/ledger/
   domain/        Money, Entry(Income, Expense), Category, Budget, BudgetOverrun, Ledger, InvalidEntryException
   service/       LedgerService, ReportService
   repository/    LedgerRepository, InMemoryLedgerRepository, CsvLedgerRepository, BankCsvImporter, ImportResult
-  cli/           Repl, Command, 각 명령 구현
+  cli/           Repl(각 명령 구현은 Repl의 메서드), Command
   Main.java      객체 조립(composition root)
 src/test/java/ledger/...   main과 같은 패키지 구조
 src/test/resources/        테스트 픽스처
@@ -188,6 +188,9 @@ quit
 ### 09 CLI 완성 — 70분
 - 읽을 글: Read and Write User Input in Java / Formatting Output with printf() in Java / Callback Functions in Java / Functional Programming in Java
 - 내용: REPL을 만든다(문법은 6절). 명령 파싱과 실행을 분리한다. `Command`는 함수형 인터페이스로 두고 `Map<String, Command>`에 람다로 등록한다. 입출력은 `InputStream`/`PrintStream`, 시간은 `Clock`을 주입받게 하여 테스트 가능하게 한다. `Main`에서 repository → service → `Repl`을 직접 조립한다.
+  - 파싱은 `Repl`이 줄을 공백으로 나눠 이름과 인자로 만드는 것이고, 실행은 `Command.execute(args)`다. 각 명령은 `Repl`의 private 메서드를 메서드 참조로 등록한다(`quit`만 람다). 입력 오류는 `error: <메시지>` 한 줄, 인자 개수 오류는 `usage: …` 한 줄을 쓰고 다음 명령을 받는다. 입력 끝(Ctrl-D)은 `quit`과 같다. 출력 형식과 공개 API는 `docs/API.md`. `quit`의 개수는 `LedgerService.count()`(09 추가)다.
+  - `Main`: 저장 파일 경로는 첫 인자, 없으면 `ledger.csv`. 저장 파일을 읽지 못하면 stderr에 `error: <경로>: <메시지>`를 쓰고 종료 코드 1. 그 밖에는 `System.exit(repl.run())`. `Main`이 더 이상 `StringUtils`를 쓰지 않으므로 `commons-lang3` 의존성을 지운다. `./gradlew run`이 키보드 입력을 받도록 `build.gradle.kts`에서 `run` 태스크의 `standardInput`을 `System.in`으로 연결한다. `ledger.csv`는 `.gitignore`에 넣는다.
+  - 제공: `samples/bank.csv`(데이터 42행, 17행이 날짜 오류. 2026-10 수입 3,000,000원, 지출 식비 300,400·주거 500,000·교통 32,900원, 9월 2건). 주어진 테스트는 `ReplTest`(6)이고 데모를 그대로 검증한다(고정 `Clock` 2026-10-11, 저장 파일은 `@TempDir`). 스텁은 `Repl`뿐이다. 학습자가 따로 작성할 테스트는 없다.
 - 완료 기준: 명령 파싱·실행 테스트 통과, 아래 데모 동작(`./gradlew run --console=plain`).
 - 실무 체크포인트: 입출력·시간 주입, 종료 코드, 사용자 입력은 항상 신뢰하지 않는다. 자바는 경로의 `~`를 확장하지 않는다(셸이 하는 일).
 
@@ -213,7 +216,7 @@ saved 42 entries
 bye
 ```
 
-(빈 저장 파일에서 시작: 직접 추가 1건 + 임포트 41건 = 42건)
+(빈 저장 파일에서 시작: 직접 추가 1건 + 임포트 41건 = 42건. 터미널에서는 입력한 명령이 프롬프트 뒤에 보인다. 실제 실행에서는 `today`가 시스템 날짜라 `added:`의 날짜만 달라진다)
 
 ### 과제 없이 읽기만 하는 글
 

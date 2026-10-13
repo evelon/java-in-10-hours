@@ -207,3 +207,40 @@ public record ImportResult(List<Entry> entries, List<RowError> errors) {   // 08
 
 - 08에서 추가한 메시지(`InvalidEntryException`, 메시지 표의 형식과 같다): `필드 수 오류: <행>`, `구분 오류: <값>`(저장 파일의 `type`, 은행 CSV의 `구분`).
 - 09 데모의 `17행: 날짜 형식 오류: 2026.10.11`은 `RowError(17, "날짜 형식 오류: 2026.10.11")`를 `<line>행: <reason>`으로 출력한 것이다. 유효한 항목은 `LedgerService.addAll(result.entries())`로 저장한다.
+
+## CLI (09, `ledger.cli`)
+
+09 도입 시점에 고정한다(설계 11절 4번). 주어진 테스트(`ReplTest`)는 `Repl`만 쓴다. `Command`는 package-private이라 공개 API가 아니다.
+
+```java
+public class Repl {
+    public Repl(InputStream in, PrintStream out, Clock clock,
+                LedgerService ledgerService, ReportService reportService)   // 09 입력은 UTF-8로 읽는다. today = LocalDate.now(clock)
+    public int run()                                                         // 09 quit 또는 입력 끝까지 실행. 종료 코드 0
+}
+
+@FunctionalInterface
+interface Command { void execute(List<String> args); }                      // 09 package-private. Repl이 Map<String, Command>에 등록
+```
+
+`LedgerService`에 추가(09, 기존 시그니처는 그대로):
+
+```java
+public int count()                                                           // 09 저장된 항목 수. quit의 "saved N entries"
+```
+
+출력 형식(프롬프트 `ledger> `는 줄바꿈 없이 출력). 데모 문자열은 설계 7절 09.
+
+| 상황 | 출력 |
+|---|---|
+| `budget` | `budget: 식비 300,000원` |
+| `add` | `added: <날짜> <라벨> <금액>[ <메모>][ #태그...]` 메모가 없으면 생략, 태그는 사전순 |
+| 예산 초과(`add`는 `added` 다음, `import`는 요약 앞) | `warning: 식비 예산 초과: 312,400원 / 300,000원 (2026-10)` |
+| `import` | `imported <N> entries, <M> errors`, 오류마다 `  <행>행: <사유>` |
+| `report` | `== 2026-10 ==`, `수입 …`, `지출 …`, `순액 …`(`Money.format(net)`), 카테고리마다 `- 주거 500,000원 (59%)` |
+| `quit`·입력 끝 | `saved <N> entries`, `bye`. 입력 끝이면 앞에 빈 줄 하나 |
+| 인자 개수 오류 | `usage: <설계 6절의 해당 문법에서 명령 이름부터>` |
+| 입력 오류 | `error: <메시지>` 후 다음 명령. 메시지는 위 메시지 표와 08 메시지, 그리고 아래 |
+
+- 09에서 추가한 메시지: `모르는 명령: <이름>`, `구분 오류: <값>`(`add`의 `expense|income`), `월 형식 오류: <값>`, `파일 읽기 오류: <경로>`, `UTF-8이 아닌 파일: <경로>`.
+- 토큰은 공백으로 나눈다. `add`의 다섯 번째 토큰부터 `#`로 시작하면 태그(`#` 제거), 아니면 메모 단어다. 메모는 단어 사이를 공백 하나로 다시 잇는다.

@@ -26,6 +26,11 @@ public class LedgerService {
         budgets.put(budget.category(), budget);
     }
 
+    // 09 quit의 "saved N entries"
+    public int count() {
+        return repository.findAll().size();
+    }
+
     public List<BudgetOverrun> add(Entry entry) {
         return addAll(List.of(entry));
     }

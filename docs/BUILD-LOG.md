@@ -294,3 +294,42 @@ build/test-results: 07까지 68 + CsvLedgerRepositoryTest 9, BankCsvImporterTest
   - 09 `import`: `BankCsvImporter.read(path)` → `service.addAll(result.entries())`의 경고 출력 → `imported N entries, M errors` → 오류마다 `  <line>행: <reason>`. 파일 없음·인코딩 오류는 `UncheckedIOException`, 헤더 오류는 IAE이므로 Repl이 잡아서 출력한다.
   - 09 `Main`: `new CsvLedgerRepository(Path.of(args.length > 0 ? args[0] : "ledger.csv"))`. 깨진 저장 파일이면 생성자에서 예외가 나므로 시작 시 메시지를 출력하고 종료 코드 1이 자연스럽다.
   - `samples/bank.csv`는 09에서 만든다. 09 데모에 맞추려면 데이터 행 42개(유효 41 + 17행 날짜 오류 1), 2026-10 수입 3,000,000원, 은행 지출 합계 833,300원(식비 300,400·주거 500,000·교통 32,900)이어야 한다. 직접 추가하는 식비 12,000원과 합쳐 데모의 845,300원·식비 312,400원이 된다.
+
+## 09 CLI 완성
+
+- 시작: `step-08-done`(그 뒤의 API 태그 없음).
+- 완료 기준: 7절 09 "명령 파싱·실행 테스트 통과, 데모 동작(`./gradlew run --console=plain`)". 요청에는 "8절의 09번"이라고 되어 있었다. 8절은 시간 합계이고 번호 항목이 없어서 08 때처럼 09단계 완료 기준으로 해석했다.
+- 기존 공개 시그니처 변경: 없음. `LedgerService.count()`를 **추가**했다(API.md가 허용하는 추가, 07 (c)에서 예고). `API.md`는 CLI 절을 덧붙이기만 했다(`git diff step-08-done -- docs/API.md`에 삭제된 줄 없음).
+- 새 타입(`ledger.cli`): `Repl`(공개), `Command`(package-private 함수형 인터페이스). 각 명령은 `Repl`의 private 메서드다. 명령마다 클래스를 만들지 않았다(설계 4절 고침).
+- 그 밖의 변경: `Main`을 composition root로 다시 썼다. `build.gradle.kts`에서 `commons-lang3`를 지우고(더 쓰지 않음) `run`의 `standardInput`을 연결했다. `.gitignore`에 `ledger.csv`. `samples/bank.csv` 추가.
+- 주어진 테스트: `cli/ReplTest` 6개. 스텁: `Repl`(생성자·`run` 본문 UOE). 제공 파일: `samples/bank.csv`. `step-09-start` = `step-08-done` + `ReplTest` + `samples/bank.csv` + `Repl` 스텁. `Main`, `Command`, `count()`, `build.gradle.kts`·`.gitignore` 변경은 학습자 몫이라 done에만 있다.
+- 학습자 테스트: 없음.
+
+start에서 red 확인: `./gradlew test` → `87 tests completed, 6 failed`. 실패는 `ReplTest` 6개 전부(스텁 UOE)이고, 08까지의 81건은 통과한다.
+
+done 확인:
+
+```
+./gradlew clean test                         → BUILD SUCCESSFUL
+build/test-results: 08까지 81 + ReplTest 6, total=87, failures=0, errors=0
+./gradlew build                              → BUILD SUCCESSFUL
+grep "import ledger.(service|repository|cli)" src/main/java/ledger/domain → 없음
+printf '<데모 명령 5줄>' | ./gradlew -q run --console=plain --args=<빈 임시 파일>
+  → 데모와 같다(added 날짜만 시스템 날짜 2026-10-13). 종료 코드 0, 저장 파일 43줄(헤더 + 42)
+같은 파일로 다시 실행해 quit → saved 42 entries
+깨진 저장 파일로 실행 → stderr "error: <경로>: 2행: 필드 수 오류: bad", 종료 코드 1
+```
+
+- (a) 테스트: 87건 통과(08까지 81 + 주어진 09 6). 실제로 실행해 확인했다. `git diff step-09-start -- src/test samples`가 비어 있다. `ReplTest` 작성 중 `#회 사` 케이스를 고쳤다. CLI는 공백으로 나누므로 `#회 사`는 태그 `회` + 메모 `사`가 되어 정상 추가된다. 태그 검증까지 가는 `#회#사`로 바꿨다(start 커밋 전).
+- (b) 설계 대비: 4절 `cli/` 항목, 7절 09에 파싱·실행 분리 방식, 오류 출력, `Main`·빌드 변경, 제공 파일과 주어진 테스트를 적었다. 데모 아래 주석에 터미널 에코와 `today` 날짜 차이를 적었다.
+- 결정과 근거:
+  - 오류 출력은 `warning:`과 짝을 맞춘 `error: <메시지>`, 인자 개수 오류는 00의 usage 줄과 같은 `usage: <문법>`이다. 둘 다 stdout이고 REPL은 계속된다.
+  - `Repl`이 잡는 예외는 `IllegalArgumentException`, `InvalidEntryException`, `UncheckedIOException`뿐이다. 그 밖의 예외는 버그이므로 숨기지 않는다. `YearMonth.parse`의 `DateTimeParseException`은 `report`에서 `월 형식 오류`(IAE)로 바꾼다. 임포트의 I/O 실패는 cause가 `CharacterCodingException`이면 `UTF-8이 아닌 파일`, 아니면 `파일 읽기 오류`다.
+  - 입력 끝(Ctrl-D)은 `quit`과 같다. 프롬프트 뒤에 빈 줄을 하나 찍어 `saved`가 새 줄에서 시작하게 한다. 종료 코드는 둘 다 0이다. 1은 `Main`이 저장 파일을 못 읽을 때뿐이다.
+  - 출력은 `printf`의 `%n`이다. 테스트는 프롬프트를 지우고 `lines()`로 비교하므로 OS 줄바꿈과 무관하다.
+  - `add` 경고는 `added` 다음 줄, `import` 경고는 요약 앞이다(데모 순서).
+  - `samples/bank.csv`의 9월 2건은 월 필터가 리포트에 섞이지 않는 것을 데모에서도 보여 준다. 9월 식비는 예산 미만이라 경고가 나지 않는다.
+- (c) 다음 단계 영향(세션 D):
+  - `steps/09/`: `ReplTest.java`, `samples/bank.csv`, `Repl` 스텁. 단계 문서에 `run`의 `standardInput` 설정과 `ledger.csv` gitignore를 요구사항으로 적는다(없으면 `./gradlew run`이 입력을 못 받는다. 체크포인트 후보).
+  - `ReplTest`의 데모 테스트는 `samples/bank.csv`를 상대 경로로 읽는다. Gradle 테스트의 작업 디렉터리가 프로젝트 루트라서 된다. IDE에서 작업 디렉터리를 바꾸면 실패한다.
+  - 01·02의 `commons-lang3` 설명은 그대로 두되, 단계 문서 09에 "더 쓰지 않으면 의존성도 지운다"를 체크포인트로 넣을 수 있다.

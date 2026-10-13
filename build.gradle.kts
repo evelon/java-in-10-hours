@@ -14,8 +14,6 @@ repositories {
 }
 
 dependencies {
-    implementation("org.apache.commons:commons-lang3:3.21.0")
-
     testImplementation(platform("org.junit:junit-bom:6.1.3"))
     testImplementation("org.junit.jupiter:junit-jupiter")
     // Gradle 9부터는 launcher를 직접 선언해야 한다
@@ -29,4 +27,9 @@ application {
 
 tasks.test {
     useJUnitPlatform()
+}
+
+// run은 기본으로 stdin을 넘기지 않는다. REPL에 키보드 입력을 연결한다
+tasks.named<JavaExec>("run") {
+    standardInput = System.`in`
 }
