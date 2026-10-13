@@ -67,7 +67,7 @@ settings.gradle.kts
 build.gradle.kts
 gradlew, gradlew.bat, gradle/wrapper/
 src/main/java/ledger/
-  domain/        Money, Entry(Income, Expense), Category, Budget, Ledger
+  domain/        Money, Entry(Income, Expense), Category, Budget, BudgetOverrun, Ledger, InvalidEntryException
   service/       LedgerService, ReportService
   repository/    LedgerRepository, InMemoryLedgerRepository, CsvLedgerRepository
   cli/           Repl, Command, 각 명령 구현
@@ -116,7 +116,7 @@ quit
 - `today`는 주입된 `Clock` 기준이다(테스트에서 날짜 고정).
 - `add`/`import` 직후, 예산을 넘은 (카테고리, 월)마다 경고 1줄을 출력한다.
 - `report`의 카테고리 행은 지출만, 금액 내림차순, 비율은 지출 합계 대비 정수 %(`HALF_UP`).
-- 예산은 세션 메모리에만 둔다. `quit`은 항목을 저장하고 종료 코드 0을 반환한다.
+- 예산은 세션 메모리에만 둔다. 항목은 `add`/`import` 시점에 바로 저장한다(write-through). `quit`은 저장된 항목 수를 보고하고 종료 코드 0을 반환한다.
 - 저장 파일 경로는 `main`의 첫 인자, 없으면 `ledger.csv`.
 
 **CSV 형식** (08단계)
@@ -249,13 +249,13 @@ bye
 한 번에 전 단계를 생성하면 뒤쪽 단계의 품질과 단계 간 정합성이 무너진다. 아래 규칙으로 나눠서 만든다.
 
 1. **한 번에 한 단계만 만든다.** 단계 하나를 끝내기 전에 다음 단계를 시작하지 않는다.
-2. **검증된 코드 위에서 쌓는다.** 단계 N 작업은 `step-(N-1)-done` 태그에서 시작한다. 단계를 끝낼 때마다 `./gradlew test`(00~02는 README의 확인 명령)를 실제로 실행해 통과를 확인하고, 통과 후에만 `step-NN-done` 태그를 찍는다. 실행하지 않은 것을 통과했다고 쓰지 않는다.
-3. **세션을 나눈다.** 권장 구분은 다음과 같다. 세션 시작 시에는 이 문서, `docs/API.md`, `docs/BUILD-LOG.md`, 직전 `done` 태그의 코드만 읽는다.
+2. **검증된 코드 위에서 쌓는다.** 단계 N 작업은 `step-(N-1)-done` 태그에서 시작한다. 단, 그 뒤에 API 태그(`api-vN`)가 있으면 가장 최근 API 태그에서 시작한다. API 태그는 `docs/API.md`의 고정 시그니처를 바꾼 커밋에 `api-v1`, `api-v2`, … 순번으로 단다. 단계를 끝낼 때마다 `./gradlew test`(00~02는 README의 확인 명령)를 실제로 실행해 통과를 확인하고, 통과 후에만 `step-NN-done` 태그를 찍는다. 실행하지 않은 것을 통과했다고 쓰지 않는다.
+3. **세션을 나눈다.** 권장 구분은 다음과 같다. 세션 시작 시에는 이 문서, `docs/API.md`, `docs/BUILD-LOG.md`, 시작 태그(2번)의 코드만 읽는다.
    - 세션 A: 00~03 (환경 전환 구간. 가장 신중하게)
    - 세션 B: 04~07 (도메인과 구조)
    - 세션 C: 08~09 (I/O, CLI)
    - 세션 D: `steps/` 분리, `docs/`, 루트 README, 리허설 보정
-4. **공개 API는 도입 시점에 고정한다.** 타입이 처음 등장한 단계의 done 시점에 공개 시그니처를 `docs/API.md`에 기록한다(`Money`는 03·04, `Entry`·`Category`는 04, `Budget`·`Ledger`는 05, `LedgerRepository`·service는 07, CLI는 09). 이후 단계는 이 시그니처를 바꾸지 않는다. 바꿔야 하면 영향받는 단계를 모두 고치고 태그를 다시 찍는다.
+4. **공개 API는 도입 시점에 고정한다.** 타입이 처음 등장한 단계의 done 시점에 공개 시그니처를 `docs/API.md`에 기록한다(`Money`는 03·04, `Entry`·`Category`는 04, `Budget`·`Ledger`는 05, `LedgerRepository`·service는 07, CLI는 09). 단, `Money`·`Entry`·`Ledger`·`LedgerRepository`와 그 시그니처에 등장하는 타입은 세션 A 종료 후 `docs/API.md`에 미리 고정했다. 각 메서드는 거기 적힌 단계에서 구현한다. 이후 단계는 이 시그니처를 바꾸지 않는다. 바꿔야 하면 영향받는 단계를 모두 고치고 태그를 다시 찍는다.
 5. **start는 done에서 파생한다.** `step-NN-done`에서 이번 단계에 추가된 구현을 스텁(4절)으로 바꾸고 테스트를 남겨 `step-NN-start`를 만든다. 테스트를 따로 새로 쓰지 않는다. 그래야 테스트와 정답이 어긋나지 않는다. start에서 테스트가 실패하는 것도 실제로 확인한다.
 6. **시간은 추정이 아니라 측정으로 보정한다.** 정답 구현 시간의 약 3~4배에 글 읽는 시간을 더해 학습 시간으로 보되, 최종 값은 세션 D의 리허설 결과로 7절의 시간을 수정한다.
 7. **단계 완료마다 짧게 기록한다.** 단계 끝에 (a) 통과한 테스트 수, (b) 설계 대비 바꾼 점, (c) 다음 단계에 영향을 주는 결정을 한두 줄씩 `docs/BUILD-LOG.md`에 남긴다. 다음 세션은 이 파일로 맥락을 이어받는다.

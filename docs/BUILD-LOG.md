@@ -123,3 +123,27 @@ build/test-results: MoneyTest tests=10, MoneyBoundaryTest tests=5, failures=0, e
 - (a) 테스트: 15개 통과(주어진 10 + 학습자 예시 5). JUnit 6.1.3에서 실제로 실행해 확인했다. start의 red 2단계도 6.1.3 기준으로 다시 확인했다. `git diff step-03-start -- MoneyTest.java`가 비어 있음을 확인했다(테스트를 정답에 맞춰 고치지 않았다).
 - (b) 설계 대비: 03의 red는 실행 실패가 아니라 컴파일 실패다(4절 스텁 규칙의 예외). 7절 03에 반영했다. `Main`은 새 `Money` API로 고쳤다. 오류 메시지는 09 데모 형식(`<사유>: <값>`)을 따른다: `음수 금액: -1`, `원 미만 금액: 1.5`, `금액 형식 오류: abc`.
 - (c) 다음 단계 영향: 04에서 `record Money(BigDecimal amount)`로 바꿀 때 `MoneyTest`와 `MoneyBoundaryTest`를 수정 없이 통과해야 한다. 검증과 scale 정규화는 compact constructor로 옮기고, `toString`은 override를 유지한다. `of(String)`은 `"1,2,3"`, `"1e3"`처럼 느슨한 입력도 받는다. CLI 입력 검증을 엄격하게 할지는 06에서 정한다.
+
+## API 사전 고정 (세션 A 종료 후)
+
+`Money`, `Entry`, `Ledger`, `LedgerRepository`와 이들의 시그니처에 등장하는 타입(`Category`, `Budget`, `BudgetOverrun`, `InvalidEntryException`)의 공개 시그니처를 `docs/API.md`에 미리 고정했다. 메서드마다 도입 단계(04~07)를 적었다. 설계 11절 4번의 "도입 시점에 고정"을 이 타입들에 한해 "지금 고정, 도입 단계에 구현"으로 바꾸고 설계에도 반영했다. service, CSV 구현, 임포트, CLI는 원래대로 각 단계에서 추가한다.
+
+- 검증: API대로 쓴 스켈레톤을 scratchpad에서 `javac --release 21`로 컴파일·실행했다(리포에는 넣지 않음).
+  - record의 canonical 생성자와 varargs 생성자가 오버로드로 공존하고, varargs 0개도 의도대로 해석된다.
+  - sealed `switch`가 동작한다.
+  - `percentOf`가 데모 값 59·37·4를 낸다.
+  - `format(difference(...))`가 `-2,000원`을 낸다.
+- 6절 명세 대비 추가한 메서드: `Money.ZERO`·`difference`·`percentOf`·`format(BigDecimal)`(05), `Entry.type()`·`month()`(04), `Entry.parse`(06), `Entry.Type`, `BudgetOverrun`, `LedgerRepository.saveAll`(07).
+- 결정과 근거
+  - `Ledger`는 저장을 하지 않는 불변 집계 객체(`new Ledger(entries, budgets)`)다. 07부터 항목은 repository가, 예산은 service가 세션 메모리에 갖고 있으므로, 둘을 받아 계산만 하는 형태가 05와 07 모두에 맞는다.
+  - 순액은 음수가 될 수 있어 `Money`로 표현할 수 없다. `difference`는 `BigDecimal`을 반환하고, `Money.format`이 포맷을 하나로 모은다.
+  - `Entry.parse`는 06의 "잘못된 날짜·모르는 카테고리·메모 쉼표" 테스트의 진입점이다. 08(저장 CSV, 은행 CSV)과 09(`add`)가 이 하나를 같이 쓴다. `today`는 CLI가 `Clock`으로 날짜로 바꾼 뒤 넘긴다. 은행 CSV는 `입금`/`출금`을 `Type`으로 바꿔 넘기고, 태그는 빈 집합이다.
+  - 예외: 값 타입은 IAE, 항목 수준은 `InvalidEntryException`이다. 메시지는 `<사유>: <값>`이고, 08 임포트는 `N행: ` 접두사를 붙여 보고한다(09 데모와 일치).
+  - 태그는 `#` 없이 저장한다. 공백·쉼표·`#`은 금지한다(CSV 공백 구분, CLI 파싱 모호성 제거). `Set.copyOf`라 순회 순서가 보장되지 않으므로, 출력과 저장 시 사전순으로 정렬한다.
+  - CSV의 `category` 필드는 라벨(`식비`)이다. 은행 CSV와 같은 파싱 경로를 쓰기 위해서다. `type` 필드만 enum 이름(`INCOME`/`EXPENSE`)이다.
+  - repository는 write-through다. 그래서 `quit`의 "저장"은 저장된 항목 수를 보고하는 것이 된다(6절에 반영). 강제 종료해도 데이터를 잃지 않는다.
+- 다음 단계 영향
+  - **04는 `step-03-done`이 아니라 `api-v1` 태그에서 시작한다.** `api-v1`은 이 API 고정 커밋이다(`step-03-done` 다음 커밋). 설계 11.2에 반영했다.
+  - 04: `Money`를 record로 바꿀 때 `Money.format`은 아직 만들지 않는다(05). `toString` override는 유지한다.
+  - 08: 메모가 빈 행은 `split(",")`이 끝의 빈 필드를 버린다. `split(",", -1)`을 써야 한다(체크포인트 후보).
+  - 요청에 "04~11"이라고 되어 있었으나 단계는 09까지라서 04~09로 해석했다.
