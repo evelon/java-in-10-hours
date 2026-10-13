@@ -29,7 +29,7 @@ https://www.baeldung.com/get-started-with-java-series
 - Gradle은 wrapper(`./gradlew`)로만 사용한다. 학습자는 Gradle을 따로 설치하지 않는다. wrapper 파일은 02단계 배포물로 제공한다.
 - Gradle은 Kotlin DSL(`build.gradle.kts`)을 쓴다.
 - 에디터는 자유. 00~01은 터미널 사용을 권장한다(IDE가 빌드를 대신하지 않게). IntelliJ는 02부터 Gradle 프로젝트로 임포트한다.
-- 사용 라이브러리: JUnit 5, AssertJ. 01단계 외부 JAR 예시는 `commons-lang3`(전이 의존성 없음).
+- 사용 라이브러리: JUnit 6, AssertJ. JUnit 6의 테스트 API(Jupiter)는 JUnit 5와 같으므로 JUnit 5 기준의 글과 자료를 그대로 읽어도 된다. 01단계 외부 JAR 예시는 `commons-lang3`(전이 의존성 없음).
 - Gradle과 라이브러리 버전은 정답 리포 제작 시점의 최신 안정판으로 정하고 `build.gradle.kts`에 고정한다. 정한 버전은 `docs/BUILD-LOG.md`에 기록한다.
 
 ## 4. 리포지토리 구조와 배포 방식
@@ -147,9 +147,9 @@ quit
 - 완료 기준: `./gradlew build` 성공, `./gradlew run --args="12000 3500 1000000"`의 출력이 01과 같다. 테스트는 아직 없다(`test` 태스크는 `NO-SOURCE`).
 - 실무 체크포인트: `build/`는 커밋하지 않는다. wrapper는 커밋한다. `implementation`과 `testImplementation`의 차이.
 
-### 03 클래스와 JUnit 5 — 60분
+### 03 클래스와 JUnit 6 — 60분
 - 읽을 글: Java Classes and Objects / A Guide to Constructors in Java / Guide to the this Java Keyword / Immutable Objects in Java / Pass-By-Value as a Parameter Passing Mechanism in Java / Java equals() and hashCode() Contracts / Guide to hashCode() in Java / Comparing Objects in Java / Java toString() Method / Method Overloading and Overriding in Java
-- 내용: JUnit 5(BOM) + AssertJ 의존성과 `useJUnitPlatform()`을 학습자가 설정한다. 설정 전에는 주어진 테스트가 컴파일되지 않는 것이 정상이다. `Money`를 `BigDecimal` 기반 불변 클래스로 완성한다: 생성자 검증, 정적 팩터리 오버로드(`of(long)`, `of(String)`), 더하기·빼기, `Comparable`, 직접 작성한 `equals`/`hashCode`/`toString`(포맷). `@ParameterizedTest`로 경계값을 검증하는 테스트는 학습자가 1개 이상 직접 작성한다.
+- 내용: JUnit 6(BOM) + AssertJ 의존성과 `useJUnitPlatform()`을 학습자가 설정한다. 설정 전에는 주어진 테스트가 컴파일되지 않는 것이 정상이다. `Money`를 `BigDecimal` 기반 불변 클래스로 완성한다: 생성자 검증, 정적 팩터리 오버로드(`of(long)`, `of(String)`), 더하기·빼기, `Comparable`, 직접 작성한 `equals`/`hashCode`/`toString`(포맷). `@ParameterizedTest`로 경계값을 검증하는 테스트는 학습자가 1개 이상 직접 작성한다. 주어진 테스트는 `MoneyTest`(10개)뿐이고 `Money` 스텁은 주지 않는다(학습자의 01 `Money`를 덮어쓰게 되므로 4절 스텁 규칙의 예외). 따라서 start의 red는 컴파일 실패다. 기존 `Main`은 새 `Money` API에 맞게 고친다. 공개 API는 `docs/API.md`.
 - 완료 기준: `./gradlew test` 통과.
 - 실무 체크포인트: `equals`를 재정의하면 `hashCode`도 재정의한다. 테스트 이름 규칙, 한 테스트에 한 가지 검증. Gradle 9부터는 `junit-platform-launcher`를 `testRuntimeOnly`로 명시해야 한다.
 
