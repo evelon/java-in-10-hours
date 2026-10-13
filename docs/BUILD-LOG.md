@@ -258,3 +258,39 @@ grep "import ledger.(service|repository)" src/main/java/ledger/domain → 없음
   - 08 `CsvLedgerRepository` 테스트는 `LedgerRepositoryContractTest`를 상속하고 `@TempDir`로 `createRepository()`를 채운다. `saveAll`은 override해서 한 번에 기록한다(API.md).
   - `LedgerService.addAll`은 `saveAll` 한 번을 호출하므로, 08 임포트는 유효한 행을 모아 `addAll`로 넘기면 된다. 잘못된 행 보고는 임포트 쪽 책임이다.
   - 09: `add`/`import`의 경고는 `add`/`addAll`의 반환값을 그대로 출력한다. `report`는 `MonthlyReport`를 출력한다. `quit`의 항목 수는 `repository.findAll().size()`다. 서비스에 개수 메서드가 필요하면 09에서 추가한다(추가는 허용).
+
+## 08 파일 I/O와 CSV
+
+- 시작: `step-07-done`(그 뒤의 API 태그 없음).
+- 완료 기준: 7절 08 "CSV 저장/로드/임포트 테스트 통과". 요청에는 "8절의 04번"이라고 되어 있었다. 8절은 시간 합계이고 번호 항목이 없어서 08단계 완료 기준으로 해석했다.
+- 기존 코드 변경: 없음. 기존 공개 시그니처는 그대로다. `API.md`는 08 절을 덧붙이기만 했다(`git diff step-07-done -- docs/API.md`에 삭제된 줄 없음).
+- 새 타입(`ledger.repository`): `CsvLedgerRepository`, `BankCsvImporter`, `ImportResult`(중첩 `RowError`).
+- 주어진 테스트: `repository/CsvLedgerRepositoryTest`(계약 5개 상속 + 4개, `@TempDir`), `repository/BankCsvImporterTest` 4개. 스텁은 새 타입 3개 전부다(본문 `UnsupportedOperationException("TODO: step 08")`). `step-08-start` = `step-07-done` + 위 테스트 2개 + 스텁 3개. 픽스처 파일은 없다. 테스트가 `@TempDir`에 직접 쓴다.
+- 학습자 테스트: 없음. 계약 상속은 07에서 이미 해 봤으므로 08에서는 주어진다.
+
+start에서 red 확인: `./gradlew test` → `81 tests completed, 13 failed`. 실패는 주어진 08 테스트 13건 전부(UOE)이고, 07까지의 68건은 통과한다. 컴파일 오류는 없다.
+
+done 확인:
+
+```
+./gradlew clean test                         → BUILD SUCCESSFUL
+build/test-results: 07까지 68 + CsvLedgerRepositoryTest 9, BankCsvImporterTest 4, total=81, failures=0, errors=0
+./gradlew build                              → BUILD SUCCESSFUL
+./gradlew -q run --args="12000 3500 1000000" → 01 기대 출력과 같다
+```
+
+- (a) 테스트: 81건 통과(07까지 68 + 주어진 08 실행 13). 실제로 실행해 확인했다. `git diff step-08-start -- src/test`가 비어 있다.
+- (b) 설계 대비: 4절 패키지 목록에 `BankCsvImporter`·`ImportResult`를 추가했다. 7절 08에 구현 방식, 주어진 테스트, 체크포인트(MS949, `split(",", -1)`, 부분 실패 정책)를 적었다.
+- 결정과 근거:
+  - 임포트는 `ledger.repository`에 둔다. 6절 CSV 형식을 다루는 파일 어댑터끼리 모은다. 패키지를 새로 만들지 않는다.
+  - `BankCsvImporter.read`는 파싱만 하고 저장하지 않는다. 저장과 예산 경고는 07의 `LedgerService.addAll` 하나로 모은다.
+  - 부분 실패: 은행 CSV는 잘못된 행을 건너뛰고 모은다. 자기 저장 파일은 깨진 행에서 `N행: ` 접두사를 붙인 `InvalidEntryException`으로 멈춘다. 저장 파일의 행을 조용히 버리면 데이터를 잃는다.
+  - 행 번호는 헤더를 1행으로 센 파일의 행 번호다(에디터 행 번호와 같다).
+  - 은행 CSV는 `split(",", 5)`이다. 적요에 쉼표가 있으면 마지막 필드에 그대로 남아 `Entry` 검증의 `메모에 쉼표 사용 불가: 점심,김밥`으로 보고된다(6절 "검증 오류로 처리"). 저장 파일은 `split(",", -1)`이고 필드는 정확히 6개여야 한다.
+  - 새 메시지: `필드 수 오류: <행>`, `구분 오류: <값>`, `헤더 오류: <헤더>`(IAE, 파일 전체 거부).
+  - `CsvLedgerRepository`는 생성 시 `Files.readAllLines`로 한 번 읽고, 저장마다 `Files.write(..., CREATE, APPEND)`로 덧붙인다. 파일이 없거나 비어 있으면 헤더를 먼저 쓴다. 파일 쓰기가 성공한 뒤에만 메모리에 반영한다. `BankCsvImporter`는 `BufferedReader`와 try-with-resources로 읽는다(읽을 글 두 가지를 모두 써 보게 한다).
+  - 인코딩은 UTF-8 고정이다. MS949 파일은 `MalformedInputException`(cause) → `UncheckedIOException`이 되고, 이것을 테스트로 검증한다. UTF-8 BOM은 처리하지 않는다(헤더 오류가 된다).
+- (c) 다음 단계 영향:
+  - 09 `import`: `BankCsvImporter.read(path)` → `service.addAll(result.entries())`의 경고 출력 → `imported N entries, M errors` → 오류마다 `  <line>행: <reason>`. 파일 없음·인코딩 오류는 `UncheckedIOException`, 헤더 오류는 IAE이므로 Repl이 잡아서 출력한다.
+  - 09 `Main`: `new CsvLedgerRepository(Path.of(args.length > 0 ? args[0] : "ledger.csv"))`. 깨진 저장 파일이면 생성자에서 예외가 나므로 시작 시 메시지를 출력하고 종료 코드 1이 자연스럽다.
+  - `samples/bank.csv`는 09에서 만든다. 09 데모에 맞추려면 데이터 행 42개(유효 41 + 17행 날짜 오류 1), 2026-10 수입 3,000,000원, 은행 지출 합계 833,300원(식비 300,400·주거 500,000·교통 32,900)이어야 한다. 직접 추가하는 식비 12,000원과 합쳐 데모의 845,300원·식비 312,400원이 된다.

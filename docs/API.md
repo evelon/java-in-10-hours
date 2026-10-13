@@ -184,3 +184,26 @@ public record MonthlyReport(YearMonth month, Money income, Money expense,
 
 - `add`·`addAll`의 반환값이 09의 `warning:` 줄이다. 이미 초과였던 (카테고리, 월)이라도 이번 추가와 무관하면 다시 경고하지 않는다. 수입은 경고 대상이 아니다.
 - `MonthlyReport`는 09 `report` 출력의 데이터다. `net`은 음수가 될 수 있어 `BigDecimal`이고, `Money.format(net)`으로 출력한다. `categories`는 `Ledger.expenseByCategory`의 순서(금액 내림차순, 같으면 Category 선언 순)다.
+
+## CSV 저장소와 은행 CSV 임포트 (08, `ledger.repository`)
+
+08 도입 시점에 고정한다(설계 11절 4번). 파일 형식은 설계 6절. 둘 다 UTF-8로만 읽고 쓰며, I/O 실패(UTF-8이 아닌 파일 포함)는 `UncheckedIOException`이다. 행 번호는 헤더를 1행으로 센 파일의 행 번호다.
+
+```java
+public class CsvLedgerRepository implements LedgerRepository {
+    public CsvLedgerRepository(Path file)                          // 08 파일이 있으면 바로 읽는다. 없으면 빈 저장소(첫 저장 때 헤더와 함께 만든다)
+        // 헤더가 다르면 IAE "헤더 오류: <헤더>". 잘못된 행이 있으면 건너뛰지 않고 InvalidEntryException "<N>행: <메시지>"
+    // save·saveAll: 파일 끝에 덧붙인 뒤 메모리에 반영(write-through). saveAll은 한 번에 기록. findAll은 List.copyOf
+}
+
+public final class BankCsvImporter {
+    public static ImportResult read(Path file)                     // 08 저장하지 않는다. 헤더가 다르면 IAE "헤더 오류: <헤더>". 빈 줄은 건너뛴다
+}
+
+public record ImportResult(List<Entry> entries, List<RowError> errors) {   // 08 둘 다 불변 복사. entries는 파일 순서
+    public record RowError(int line, String reason)                // 08 reason은 InvalidEntryException 메시지
+}
+```
+
+- 08에서 추가한 메시지(`InvalidEntryException`, 메시지 표의 형식과 같다): `필드 수 오류: <행>`, `구분 오류: <값>`(저장 파일의 `type`, 은행 CSV의 `구분`).
+- 09 데모의 `17행: 날짜 형식 오류: 2026.10.11`은 `RowError(17, "날짜 형식 오류: 2026.10.11")`를 `<line>행: <reason>`으로 출력한 것이다. 유효한 항목은 `LedgerService.addAll(result.entries())`로 저장한다.

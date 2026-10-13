@@ -69,7 +69,7 @@ gradlew, gradlew.bat, gradle/wrapper/
 src/main/java/ledger/
   domain/        Money, Entry(Income, Expense), Category, Budget, BudgetOverrun, Ledger, InvalidEntryException
   service/       LedgerService, ReportService
-  repository/    LedgerRepository, InMemoryLedgerRepository, CsvLedgerRepository
+  repository/    LedgerRepository, InMemoryLedgerRepository, CsvLedgerRepository, BankCsvImporter, ImportResult
   cli/           Repl, Command, 각 명령 구현
   Main.java      객체 조립(composition root)
 src/test/java/ledger/...   main과 같은 패키지 구조
@@ -180,8 +180,10 @@ quit
 ### 08 파일 I/O와 CSV — 60분
 - 읽을 글: How to Read a File in Java / Java - Write to File / Introduction to the Java NIO2 File API / Guide to BufferedReader / Java - Try with Resources / Java String Conversions / Arrays in Java: A Reference Guide
 - 내용: `CsvLedgerRepository`(저장·로드)가 07의 계약 테스트를 통과하게 한다. 행은 `String.split`으로 배열로 나누고, 문자열을 숫자·날짜로 변환한다. 은행 CSV 임포트에서 잘못된 행은 건너뛰고 (행 번호, 사유)를 모아서 보고한다. 형식은 6절. 테스트는 `@TempDir`을 쓴다.
+  - `CsvLedgerRepository`는 생성할 때 파일을 읽고, 저장할 때마다 파일 끝에 덧붙인다(write-through). 행 파싱은 06의 `Entry.parse` 하나를 쓴다. 저장 파일의 깨진 행은 건너뛰지 않고 `N행: ` 접두사를 붙인 `InvalidEntryException`으로 멈춘다(자기 데이터는 조용히 버리지 않는다). 은행 CSV는 `BankCsvImporter.read`가 `ImportResult`(유효 항목 + `RowError(행, 사유)`)로 돌려주고 저장은 하지 않는다(09가 `LedgerService.addAll`로 넘긴다). 행 번호는 헤더가 1행이다. 시그니처는 `docs/API.md`.
+  - 주어진 테스트는 `CsvLedgerRepositoryTest`(07 계약 5개 상속 + 4개)와 `BankCsvImporterTest`(4개)다. 스텁은 `CsvLedgerRepository`, `BankCsvImporter`, `ImportResult`. 학습자가 따로 작성할 테스트는 없다. 테스트 픽스처 파일은 없고 테스트가 `@TempDir`에 직접 쓴다. `samples/bank.csv`는 09 데모용으로 09에서 만든다.
 - 완료 기준: CSV 저장/로드/임포트 테스트 통과.
-- 실무 체크포인트: 인코딩을 기본값에 맡기지 않는다(국내 은행 CSV는 MS949인 경우가 많다). 파일 경로는 `Path`로 다룬다. 부분 실패 처리 정책.
+- 실무 체크포인트: 인코딩을 기본값에 맡기지 않는다(국내 은행 CSV는 MS949인 경우가 많다. UTF-8로 읽으면 `MalformedInputException`이 난다). 파일 경로는 `Path`로 다룬다. 부분 실패 처리 정책(임포트는 건너뛰고 보고, 자기 저장 파일은 멈춤). `split(",")`은 끝의 빈 필드를 버린다(`split(",", -1)`).
 
 ### 09 CLI 완성 — 70분
 - 읽을 글: Read and Write User Input in Java / Formatting Output with printf() in Java / Callback Functions in Java / Functional Programming in Java
