@@ -224,3 +224,37 @@ build/test-results: 05까지 43 + EntryValidationTest 15, failures=0, errors=0
   - `Entry.parse`의 검증 순서는 날짜 → 카테고리 → 금액 → 메모·태그다. 한 행에 오류가 여럿이면 앞의 것 하나만 보고한다. 08 임포트의 `N행: <메시지>`는 이 메시지를 쓴다.
   - 날짜는 `LocalDate.parse`(ISO, STRICT)다. `2026-02-30`도 `날짜 형식 오류`가 된다. `today` 변환은 09 CLI의 몫이다.
   - `Money` 안에서 정규식 static 필드는 `ZERO`보다 앞에 둔다. `ZERO`를 `of(String)`으로 만들도록 바뀌어도 초기화 순서 때문에 NPE가 나지 않게 하기 위해서다.
+
+## 07 인터페이스와 레이어
+
+- 시작: `step-06-done`(그 뒤의 API 태그 없음).
+- 기존 코드 변경: 없음. 도메인은 이미 `ledger.domain`에 있어 옮길 것이 없다. `Main`은 09에서 다시 쓴다. 문서는 `API.md`(service 절 추가만, 기존 부분은 바이트 단위로 동일), `design.md` 7절 07, 이 파일을 고쳤다.
+- 새 타입: `ledger.repository.LedgerRepository`·`InMemoryLedgerRepository`, `ledger.service.LedgerService`·`ReportService`·`MonthlyReport`(중첩 `CategoryLine`).
+- 주어진 테스트: `repository/LedgerRepositoryContractTest`(추상, 5개), `service/LedgerServiceTest` 3개, `service/ReportServiceTest` 2개. 스텁은 위 새 타입 전부다(본문 `UnsupportedOperationException("TODO: step 07")`). `step-07-start` = `step-06-done` + 위 테스트 3개 + 스텁 5개.
+- 학습자 테스트 예시 답안: `repository/InMemoryLedgerRepositoryTest`(계약 상속, `createRepository()`만 구현). done에만 있고 `steps/07`에는 넣지 않는다.
+
+start에서 red 확인(학습자가 겪는 순서):
+1. 그대로 `./gradlew test`: `63 tests completed, 5 failed`. service 테스트 5개만 실패한다. 계약 테스트는 추상 클래스라 실행되지 않는다.
+2. 상속 테스트를 추가한 뒤: `68 tests completed, 10 failed`(계약 5 + service 5).
+
+done 확인:
+
+```
+./gradlew clean build                        → BUILD SUCCESSFUL
+build/test-results: 06까지 58 + InMemoryLedgerRepositoryTest 5, LedgerServiceTest 3, ReportServiceTest 2, failures=0, errors=0
+grep "import ledger.(service|repository)" src/main/java/ledger/domain → 없음(의존 방향 확인)
+./gradlew -q run --args="12000 3500 1000000" → 01 기대 출력과 같다
+```
+
+- (a) 테스트: 68건 통과(06까지 58 + 계약 5 + service 5). 실제로 실행해 확인했다. `git diff step-07-start -- src/test`에서 주어진 테스트는 바뀌지 않았고, 기존 domain 코드·테스트는 `step-06-done`과 같다.
+- (b) 설계 대비: 7절 07에 학습자 상속 테스트, 주어진 테스트 구성, 계약 테스트가 상속 전에는 실행되지 않는다는 점을 적었다. API.md에 `InMemoryLedgerRepository`와 service 절을 추가했다(11절 4번, 07 도입 고정).
+- 결정과 근거:
+  - 경고 범위: `addAll`은 "이번에 추가한 지출이 걸린 (카테고리, 월) 중 초과"만 돌려준다. 6절의 "예산을 넘은 (카테고리, 월)마다 경고 1줄"을 매 `add`마다 이미 초과된 모든 카테고리를 반복 경고하는 것으로 읽으면 출력이 시끄러워진다. 09 데모(`import` 뒤 식비 경고 1줄)와도 맞는 쪽을 골랐다.
+  - 정렬: 월 오름차순, 같은 달 안에서는 Category 선언 순(`Ledger.overBudget` 순서)이다.
+  - 예산은 `LedgerService`의 `EnumMap`에 두고 `new Ledger(repository.findAll(), budgets.values())`로 계산한다. `Ledger`는 05 그대로다.
+  - `ReportService`는 `findByMonth`(default 메서드)로 그 달만 읽는다. 순액은 `BigDecimal net`이다.
+  - `findByMonth`의 기본 구현은 `Stream.toList()`(불변)다. `InMemoryLedgerRepository.findAll`은 `List.copyOf` 스냅숏이다.
+- (c) 다음 단계 영향:
+  - 08 `CsvLedgerRepository` 테스트는 `LedgerRepositoryContractTest`를 상속하고 `@TempDir`로 `createRepository()`를 채운다. `saveAll`은 override해서 한 번에 기록한다(API.md).
+  - `LedgerService.addAll`은 `saveAll` 한 번을 호출하므로, 08 임포트는 유효한 행을 모아 `addAll`로 넘기면 된다. 잘못된 행 보고는 임포트 쪽 책임이다.
+  - 09: `add`/`import`의 경고는 `add`/`addAll`의 반환값을 그대로 출력한다. `report`는 `MonthlyReport`를 출력한다. `quit`의 항목 수는 `repository.findAll().size()`다. 서비스에 개수 메서드가 필요하면 09에서 추가한다(추가는 허용).

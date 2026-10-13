@@ -173,7 +173,7 @@ quit
 
 ### 07 인터페이스와 레이어 — 50분
 - 읽을 글: Java Interfaces / Static and Default Methods in Interfaces in Java / Abstract Classes in Java / Inheritance and Composition (Is-a vs Has-a relationship) in Java
-- 내용: `domain`/`service`/`repository` 패키지로 분리한다. `LedgerRepository` 인터페이스(`findByMonth`는 default 메서드)와 `InMemoryLedgerRepository`를 만든다. `LedgerService`(항목 추가, 예산 경고)와 `ReportService`(월 리포트 데이터)는 생성자로 repository를 받는다(composition). service 테스트는 `InMemoryLedgerRepository`를 넣어서 한다. repository 계약 테스트(`LedgerRepositoryContractTest`, 추상 클래스)를 주고, 이를 상속한 테스트로 `InMemoryLedgerRepository`가 통과하게 한다.
+- 내용: `domain`/`service`/`repository` 패키지로 분리한다. `LedgerRepository` 인터페이스(`findByMonth`는 default 메서드)와 `InMemoryLedgerRepository`를 만든다. `LedgerService`(항목 추가, 예산 경고)와 `ReportService`(월 리포트 데이터)는 생성자로 repository를 받는다(composition). service 테스트는 `InMemoryLedgerRepository`를 넣어서 한다. repository 계약 테스트(`LedgerRepositoryContractTest`, 추상 클래스)를 주고, 이를 상속한 테스트로 `InMemoryLedgerRepository`가 통과하게 한다. 상속 테스트(`InMemoryLedgerRepositoryTest`, `createRepository()` 하나)는 학습자가 직접 작성한다. 주어진 테스트는 계약 5개, `LedgerServiceTest` 3개, `ReportServiceTest` 2개다. 스텁은 repository·service의 새 타입 전부다. 계약 테스트는 추상 클래스라서 상속 테스트를 쓰기 전에는 실행되지 않는다. service 시그니처는 `docs/API.md`에 추가했다.
 - 완료 기준: service 테스트와 계약 테스트 통과.
 - 실무 체크포인트: 구현이 아닌 인터페이스에 의존, 생성자 주입, 패키지 의존 방향(domain은 아무것도 모른다).
 

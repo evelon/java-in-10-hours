@@ -149,3 +149,38 @@ public interface LedgerRepository {
 
 - 계약(07 `LedgerRepositoryContractTest`가 검증): 저장한 순서대로 돌려준다. 같은 항목을 두 번 저장하면 두 번 나온다. 반환한 리스트를 바꾸려 하면 `UnsupportedOperationException`이 난다.
 - 구현은 `save`·`saveAll` 시점에 바로 기록한다(write-through). CSV 구현의 I/O 실패는 `UncheckedIOException`이다. 그래서 `quit`이 따로 기록할 것은 없고, 저장된 항목 수(`findAll().size()`)를 보고한다.
+
+## `InMemoryLedgerRepository` (07, `ledger.repository`)
+
+```java
+public class InMemoryLedgerRepository implements LedgerRepository {
+    public InMemoryLedgerRepository()                              // 07 빈 저장소. findAll은 List.copyOf(스냅숏)
+}
+```
+
+## service (07, `ledger.service`)
+
+07 도입 시점에 고정한다(설계 11절 4번). 둘 다 생성자로 `LedgerRepository`를 받는다(구현이 아닌 인터페이스에 의존).
+
+```java
+public class LedgerService {
+    public LedgerService(LedgerRepository repository)              // 07
+    public void setBudget(Budget budget)                           // 07 세션 메모리. 같은 카테고리는 나중 것
+    public List<BudgetOverrun> add(Entry entry)                    // 07 addAll(List.of(entry))
+    public List<BudgetOverrun> addAll(Collection<? extends Entry> entries)
+        // 07 saveAll로 저장한 뒤, 이번에 추가한 지출이 걸린 (카테고리, 월) 중 예산 초과만. 월 오름차순, 같은 달은 Category 선언 순. 불변
+}
+
+public class ReportService {
+    public ReportService(LedgerRepository repository)              // 07
+    public MonthlyReport report(YearMonth month)                   // 07 findByMonth로 읽어 Ledger로 집계
+}
+
+public record MonthlyReport(YearMonth month, Money income, Money expense,
+                            BigDecimal net, List<CategoryLine> categories) {    // 07 categories는 불변 복사
+    public record CategoryLine(Category category, Money amount, int percent)   // 07 percent = amount.percentOf(expense)
+}
+```
+
+- `add`·`addAll`의 반환값이 09의 `warning:` 줄이다. 이미 초과였던 (카테고리, 월)이라도 이번 추가와 무관하면 다시 경고하지 않는다. 수입은 경고 대상이 아니다.
+- `MonthlyReport`는 09 `report` 출력의 데이터다. `net`은 음수가 될 수 있어 `BigDecimal`이고, `Money.format(net)`으로 출력한다. `categories`는 `Ledger.expenseByCategory`의 순서(금액 내림차순, 같으면 Category 선언 순)다.
