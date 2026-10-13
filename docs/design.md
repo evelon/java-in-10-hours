@@ -129,8 +129,9 @@ quit
 
 ### 00 첫 실행과 기본 문법 — 50분
 - 읽을 글: Difference Between JVM, JRE, and JDK / Introduction to Basic Syntax in Java / Introduction to Java Primitives / Java main() Method Explained / Control Structures in Java / A Guide to Java Loops
-- 내용: `Hello.java`를 `javac`로 컴파일하고 `java`로 실행한다. `.class`가 무엇인지 확인한다. `main`의 `args`를 받아 원금·이율·기간으로 월별 잔액 표를 출력하는 작은 프로그램을 만든다(primitive, 조건문, 반복문). `Main-Class`가 지정된 실행 가능한 JAR을 `jar` 명령으로 직접 생성한다.
-- 완료 기준: `java -jar hello.jar 1000000 3 12`가 기대 출력과 같다.
+- 내용: `Hello.java`를 `javac`로 컴파일하고 `java`로 실행한다. `.class`가 무엇인지 확인한다. `main`의 `args`를 받아 원금·이율·기간으로 월별 잔액 표를 출력하는 작은 프로그램을 만든다(primitive, 조건문, 반복문). `Main-Class`가 지정된 실행 가능한 JAR을 `jar` 명령으로 직접 생성한다. 빌드 산출물(`out/`, `hello.jar`)은 최소 `.gitignore`로 제외한다.
+  - 계산 규칙: 인자는 원금(원), 연이율(정수 %), 개월 수. 월 복리, `long` 정수 연산으로 월 이자 = `잔액 * 연이율 / 1200`(원 미만 버림). 출력은 한 줄에 `<월> <잔액>`. 인자 개수가 틀리면 usage를 stderr에 쓰고 종료 코드 1.
+- 완료 기준: `java -jar hello.jar 1000000 3 12`가 기대 출력과 같다(첫 줄 `1 1002500`, 마지막 줄 `12 1030411`. 전체는 `docs/BUILD-LOG.md`).
 - 실무 체크포인트: `JAVA_HOME`, 컴파일 타깃(`--release`). 정수 나눗셈과 오버플로, `double`의 오차(04에서 다시 다룬다).
 
 ### 01 패키지와 클래스패스 — 50분
