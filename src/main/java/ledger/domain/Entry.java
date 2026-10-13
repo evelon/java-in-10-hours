@@ -16,11 +16,15 @@ public sealed interface Entry permits Income, Expense {
     Set<String> tags();
 
     default Type type() {
-        throw new UnsupportedOperationException("TODO: step 04");
+        // sealed라서 default 없이도 모든 경우를 다룬 것이 컴파일 시점에 확인된다
+        return switch (this) {
+            case Income income -> Type.INCOME;
+            case Expense expense -> Type.EXPENSE;
+        };
     }
 
     default YearMonth month() {
-        throw new UnsupportedOperationException("TODO: step 04");
+        return YearMonth.from(date());
     }
 
     enum Type { INCOME, EXPENSE }

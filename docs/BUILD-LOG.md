@@ -147,3 +147,24 @@ build/test-results: MoneyTest tests=10, MoneyBoundaryTest tests=5, failures=0, e
   - 04: `Money`를 record로 바꿀 때 `Money.format`은 아직 만들지 않는다(05). `toString` override는 유지한다.
   - 08: 메모가 빈 행은 `split(",")`이 끝의 빈 필드를 버린다. `split(",", -1)`을 써야 한다(체크포인트 후보).
   - 요청에 "04~11"이라고 되어 있었으나 단계는 09까지라서 04~09로 해석했다.
+
+## 04 도메인 모델
+
+- 시작: `api-v1`(`step-03-done` 아님, 설계 11절 2번).
+- 주어진 테스트(`src/test/java/ledger/domain/`): `CategoryTest` 3개(`@CsvSource` 5건 포함, 실행 7건), `EntryTest` 6개, `MoneyRecordTest` 1개. 스텁: `Category`, `Entry`, `Income`, `Expense`(본문 `UnsupportedOperationException("TODO: step 04")`). `Money`는 스텁이 없다(학습자의 03 `Money`를 고친다). `step-04-start` = `api-v1` + 위 테스트 3개 + 스텁 4개.
+- 학습자 테스트 예시 답안: `DoublePitfallTest`(2개, `0.1 + 0.2`, `1500 * 1.1`). done에만 있고 `steps/04`에는 넣지 않는다.
+
+start에서 red 확인: `./gradlew test` → `29 tests completed, 14 failed`. 실패는 주어진 04 테스트 14건 전부(`Category`·`Entry` 쪽은 `UnsupportedOperationException`, `MoneyRecordTest`는 `AssertionFailedError`). 03의 15건은 통과한다.
+
+done 확인:
+
+```
+./gradlew clean test                         → BUILD SUCCESSFUL
+build/test-results: MoneyTest 10, MoneyBoundaryTest 5, CategoryTest 7, EntryTest 6, MoneyRecordTest 1, DoublePitfallTest 2, failures=0, errors=0
+./gradlew build                              → BUILD SUCCESSFUL
+./gradlew -q run --args="12000 3500 1000000" → 01 기대 출력과 같다
+```
+
+- (a) 테스트: 31건 통과(03의 15 + 주어진 04 실행 14 + 학습자 예시 2). 실제로 실행해 확인했다. `git diff step-03-start -- MoneyTest.java`가 비어 있다. `Money`를 record로 바꾼 뒤에도 03 테스트를 고치지 않고 통과했다. 주어진 04 테스트도 `step-04-start` 이후 바뀌지 않았다.
+- (b) 설계 대비: 7절 04에 주어진 테스트 구성, `Money` 스텁이 없는 이유, `double` 테스트를 학습자가 쓴다는 점을 적었다. `CategoryTest`에 `new String("식비")` 케이스를 넣었다. `==`로 비교하는 구현은 리터럴끼리는 우연히 통과하므로, 체크포인트("문자열은 `equals`")를 테스트로 잡기 위해서다. 처음 고른 `double` 예시 `1000 * 1.1`은 double에서도 정확히 `1100.0`이라 실패했다. `1500 * 1.1`(= `1650.0000000000002`)로 바꿨다. 예시 값은 jshell로 확인한 것만 쓴다.
+- (c) 다음 단계 영향: varargs 생성자는 `Set.of(tags)`를 쓰면 중복 태그에서 IAE가 난다. `Set.copyOf(List.of(tags))`를 쓴다(체크포인트 후보). 메모 `null`은 NPE다(공통 규칙). 메모가 없으면 `""`를 넘긴다. 06의 메모·태그 검증은 `Income`·`Expense`의 compact constructor에 넣는다. 지금은 두 record에 같은 코드가 중복되어 있다. 06에서 검증이 늘면 `ledger.domain` 안의 package-private 헬퍼로 모은다. `Money.ZERO`·`difference`·`percentOf`·`format`은 아직 없다(05).

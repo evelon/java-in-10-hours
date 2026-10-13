@@ -155,7 +155,7 @@ quit
 
 ### 04 도메인 모델 — 55분
 - 읽을 글: Java Record Keyword / A Guide to Java Enums / Sealed Classes and Interfaces in Java / Pattern Matching for Switch / Java Switch Statement / Java instanceof Operator / Comparing Strings in Java / Varargs in Java
-- 내용: `Money`를 `record`로 바꾼다. 03의 테스트가 그대로 통과해야 한다(테스트가 리팩터링 안전망임을 체험). 03에서 손으로 쓴 `equals`/`hashCode`가 사라지는 것을 확인한다. `Entry` 계층(`Income`, `Expense`)과 `Category`를 6절 명세대로 만든다. 날짜는 `LocalDate`/`YearMonth`를 쓴다. 태그는 varargs로 받는다. `double`로 금액을 다루면 틀리는 케이스를 테스트로 확인한다.
+- 내용: `Money`를 `record`로 바꾼다. 03의 테스트가 그대로 통과해야 한다(테스트가 리팩터링 안전망임을 체험). 03에서 손으로 쓴 `equals`/`hashCode`가 사라지는 것을 확인한다. `Entry` 계층(`Income`, `Expense`)과 `Category`를 6절 명세대로 만든다. 날짜는 `LocalDate`/`YearMonth`를 쓴다. 태그는 varargs로 받는다. `double`로 금액을 다루면 틀리는 케이스를 확인하는 테스트는 학습자가 1개 이상 직접 작성한다. 주어진 테스트는 `CategoryTest`(3), `EntryTest`(6), `MoneyRecordTest`(1, `Money`가 record인지 확인)다. `Money`는 학습자의 03 코드를 고치는 것이므로 스텁을 주지 않는다. 그래서 start에서 `Money` 쪽 red는 `MoneyRecordTest` 하나다.
 - 완료 기준: 도메인 테스트 통과.
 - 실무 체크포인트: 문자열은 `==`가 아니라 `equals`로 비교한다. `BigDecimal`의 `equals`는 scale까지 비교하므로(`1.0` ≠ `1.00`) record의 compact constructor에서 scale을 정규화한다. 도메인 객체는 가능한 한 불변(`Set.copyOf`).
 
