@@ -333,3 +333,33 @@ printf '<데모 명령 5줄>' | ./gradlew -q run --console=plain --args=<빈 임
   - `steps/09/`: `ReplTest.java`, `samples/bank.csv`, `Repl` 스텁. 단계 문서에 `run`의 `standardInput` 설정과 `ledger.csv` gitignore를 요구사항으로 적는다(없으면 `./gradlew run`이 입력을 못 받는다. 체크포인트 후보).
   - `ReplTest`의 데모 테스트는 `samples/bank.csv`를 상대 경로로 읽는다. Gradle 테스트의 작업 디렉터리가 프로젝트 루트라서 된다. IDE에서 작업 디렉터리를 바꾸면 실패한다.
   - 01·02의 `commons-lang3` 설명은 그대로 두되, 단계 문서 09에 "더 쓰지 않으면 의존성도 지운다"를 체크포인트로 넣을 수 있다.
+
+## 세션 D: `steps/`, 단계 문서, README
+
+- 만든 것: `steps/02~09/`, `docs/00~09-*.md`, 루트 `README.md`. 배포를 두 리포에서 리포 하나로 바꾸고 설계 4·9·10절에 반영했다(커밋 `f494125`, `1f8d650`).
+- `steps/NN/` 추출: `git diff --diff-filter=A <기준 태그> step-NN-start -- . ':!docs'`의 파일을 그대로 복사했다. 기준 태그는 `step-(N-1)-done`이고, 04만 `api-v1`이다.
+
+검증(2026-10-14, 모두 실제로 실행):
+
+```
+steps/NN과 start 태그에서 추가된 파일 비교      → 02~09 모두 파일 목록·내용이 같다. start 커밋은 추가(A)만 있다
+주어진 테스트: steps 사본과 HEAD 비교          → 모두 같다. done 커밋은 주어진 테스트를 고치지 않았다
+태그별 ./gradlew test (worktree)
+  03 start 컴파일 실패 / done 15 통과
+  04 start 29 중 14 실패 / done 31 통과
+  05 start 컴파일 실패 / done 43 통과
+  06 start 컴파일 실패 / done 58 통과
+  07 start 63 중 5 실패 / done 68 통과
+  08 start 81 중 13 실패 / done 81 통과
+  09 start 87 중 6 실패 / done 87 통과
+00~02 확인 명령(done 태그)                     → 00 첫 줄 1 1002500, 끝 줄 12 1030411, 인자 오류 종료 코드 1
+                                                 01 수동 빌드 출력 = 02 ./gradlew run 출력, 02 test NO-SOURCE
+09 데모(./gradlew run, 빈 저장 파일)           → 7절 데모와 같다(added 날짜만 다름)
+단계 문서 10개                                → 5절의 8개 절 순서, "읽을 글"이 7절 배정과 같다
+```
+
+- 설계 대비: 4절 최종 구조에 `MonthlyReport`를 넣고, 없는 `src/test/resources/`를 지웠다. 6절 경고 규칙을 API.md(이번 추가와 관련된 (카테고리, 월)만)에 맞췄다.
+- 남은 일
+  - Baeldung 링크 85개 확인(10절 3번): 스크립트 요청은 모두 403(봇 차단)이라 확인하지 못했다. 브라우저로 확인해야 한다.
+  - 리허설과 7절 시간 보정(10절 5번, 11절 6번): 아직 하지 않았다. 7절 시간은 추정치다.
+  - 원격 리포에 push할 때 태그도 함께 올린다(`git push --tags`). README의 `git diff step-NN-start step-NN-done` 안내가 태그에 의존한다.
