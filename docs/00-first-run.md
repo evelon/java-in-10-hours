@@ -19,13 +19,13 @@
 
 ## 시작하기
 
-빈 Git 리포에서 시작한다. `steps/00/`에서 복사할 파일은 없다.
+과제용 빈 Git 리포(학습자 리포)를 만들어 시작한다. `steps/00/`에서 복사할 파일은 없다.
 
 ## 맞춰야 할 공개 API
 
 이 단계에는 주어진 테스트가 없고, 아래 확인 명령이 테스트 역할을 한다. 확인 명령이 의존하는 것은 다음뿐이다.
 
-- 리포 루트의 `Hello.java`
+- 학습자 리포 루트의 `Hello.java`
 - 기본 패키지(`package` 선언 없음)의 `public class Hello`
 - `public static void main(String[] args)`
 
@@ -43,7 +43,7 @@
 
 ## 완료 기준
 
-리포 루트에서 아래 명령을 실행한다.
+학습자 리포 루트에서 아래 명령을 실행한다.
 
 ```
 javac --release 21 -d out Hello.java

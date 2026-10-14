@@ -24,7 +24,7 @@ Gradle은 Baeldung 시리즈 범위 밖이라 읽을 글이 없다. 아래 최�
 
 ## 시작하기
 
-`steps/02/`의 wrapper 파일을 리포 루트에 복사한다.
+`steps/02/`의 wrapper 파일을 학습자 리포 루트에 복사한다.
 
 ```
 gradlew

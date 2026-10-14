@@ -15,7 +15,7 @@ https://www.baeldung.com/get-started-with-java-series
 
 1. 00~01 단계에서만 `javac`/`java`/`jar`를 직접 쓴다. 02부터는 Gradle 표준 레이아웃이다.
 2. 검증은 `./gradlew test` 하나다. `check.sh` 같은 별도 래퍼를 두지 않는다.
-3. 03부터 각 단계는 **미리 주어진 실패하는 테스트**를 통과시키는 방식이다. 00~02는 README의 확인 명령과 기대 출력으로 자가 확인한다. 학습자가 테스트를 추가로 작성하는 부분은 단계 문서에 명시한다.
+3. 03부터 각 단계는 **미리 주어진 실패하는 테스트**를 통과시키는 방식이다. 00~02는 단계 문서 완료 기준의 확인 명령과 기대 출력으로 자가 확인한다. 학습자가 테스트를 추가로 작성하는 부분은 단계 문서에 명시한다.
 4. 문법은 필요한 시점에 도입한다. 시리즈 글은 해당 문법이 필요한 단계에 배정한다(7절 각 단계의 "읽을 글").
 5. 단계마다 코드를 누적해서 키운다. 마지막에는 `./gradlew run`으로 동작하는 CLI가 나온다.
 6. 학습자는 Git으로 작업하고 단계마다 커밋한다.
@@ -30,35 +30,44 @@ https://www.baeldung.com/get-started-with-java-series
 - Gradle은 Kotlin DSL(`build.gradle.kts`)을 쓴다.
 - 에디터는 자유. 00~01은 터미널 사용을 권장한다(IDE가 빌드를 대신하지 않게). IntelliJ는 02부터 Gradle 프로젝트로 임포트한다.
 - 사용 라이브러리: JUnit 6, AssertJ. JUnit 6의 테스트 API(Jupiter)는 JUnit 5와 같으므로 JUnit 5 기준의 글과 자료를 그대로 읽어도 된다. 01단계 외부 JAR 예시는 `commons-lang3`(전이 의존성 없음).
-- Gradle과 라이브러리 버전은 정답 리포 제작 시점의 최신 안정판으로 정하고 `build.gradle.kts`에 고정한다. 정한 버전은 `docs/BUILD-LOG.md`에 기록한다.
+- Gradle과 라이브러리 버전은 정답 코드 제작 시점의 최신 안정판으로 정하고 `build.gradle.kts`에 고정한다. 정한 버전은 `docs/BUILD-LOG.md`에 기록한다.
 
 ## 4. 리포지토리 구조와 배포 방식
 
-두 리포지토리로 나눈다.
-
-**A. 과제 리포 (`ledger-exercises`, 학습자 배포용)**
+리포지토리 하나로 배포한다. 과제(안내·단계 문서·시작 파일)와 정답(코드·태그)이 같은 리포에 있다.
 
 ```
 README.md                  전체 안내, 진행 방법, 단계 목록
 docs/
   00-first-run.md          단계별 과제 설명 (형식은 5절)
   01-packages-classpath.md
-  ...
+  02-gradle.md
+  03-classes-junit.md
+  04-domain-model.md
+  05-collections-streams.md
+  06-exceptions-validation.md
+  07-interfaces-layers.md
+  08-file-io-csv.md
   09-cli.md
+  design.md, API.md, BUILD-LOG.md   제작용 문서
 steps/
-  00/ ... 09/              단계 시작 시 학습자 리포에 복사할 파일
+  02/ ... 09/              단계 시작 시 학습자 리포에 복사할 파일(00·01은 복사할 파일이 없어 디렉터리도 없다)
+src/, build.gradle.kts 등   정답 코드(09 완료 상태)
 ```
 
-- `steps/NN/`에는 **새로 추가되는 파일만** 둔다: 주어진 테스트, 테스트 픽스처(예: `bank.csv`), 새 클래스의 스텁, (02의 경우) wrapper 파일.
+- 학습자는 이 리포를 내려받아 README, 단계 문서, `steps/`를 보고, 과제는 따로 만든 빈 리포(학습자 리포)에서 한다.
+
+**`steps/` 규칙**
+
+- `steps/NN/`에는 **새로 추가되는 파일만** 둔다: 주어진 테스트, 테스트 픽스처(예: `bank.csv`), 새 클래스의 스텁, (02의 경우) wrapper 파일. 경로는 학습자 리포 루트 기준이다(`steps/03/src/test/java/...`).
 - 학습자가 이미 작성한 main 코드를 덮어쓰는 파일은 넣지 않는다. 기존 클래스를 바꿔야 하면 단계 문서의 요구사항으로 설명한다.
 - 스텁은 시그니처만 갖추고 본문은 `throw new UnsupportedOperationException("TODO: step NN");`로 둔다. 테스트가 컴파일은 되고 실행에서 실패(red)하게 하기 위해서다.
 
-**B. 정답 리포 (`ledger-solution`)**
+**정답 코드와 태그**
 
-- 단계마다 `step-NN-start`, `step-NN-done` 태그를 둔다. start는 `step-(N-1)-done` + `steps/NN/` 파일을 적용한 상태(테스트 실패), done은 정답이다.
+- 단계마다 `step-NN-start`, `step-NN-done` 태그를 둔다. start는 `step-(N-1)-done` + `steps/NN/` 파일을 적용한 상태(테스트 실패), done은 정답이다. `steps/NN/`은 start 태그에서 새로 추가된 파일(`docs/` 제외)을 그대로 뽑은 것이다.
 - 태그 간 diff가 그 단계의 학습 내용이 되도록 커밋을 정리한다.
-- 제작용 문서도 여기 둔다: `docs/design.md`(이 문서), `docs/API.md`, `docs/BUILD-LOG.md`.
-- 학습자에게 공개한다. 막혔을 때 `step-NN-done`과 비교하는 용도다. README에 "단계를 끝내기 전에는 보지 말 것"을 안내한다.
+- 정답이 같은 리포에 있으므로 루트의 `src/`와 `step-NN-done` 태그가 학습자에게 보인다. README에 "단계를 끝내기 전에는 `src/`와 done 태그를 보지 말 것"을 안내한다. 막혔을 때는 `git diff step-NN-start step-NN-done`으로 그 단계의 정답만 비교한다.
 
 **학습자 리포의 최종 모습(Gradle 단일 모듈)**
 
@@ -68,12 +77,11 @@ build.gradle.kts
 gradlew, gradlew.bat, gradle/wrapper/
 src/main/java/ledger/
   domain/        Money, Entry(Income, Expense), Category, Budget, BudgetOverrun, Ledger, InvalidEntryException
-  service/       LedgerService, ReportService
+  service/       LedgerService, ReportService, MonthlyReport
   repository/    LedgerRepository, InMemoryLedgerRepository, CsvLedgerRepository, BankCsvImporter, ImportResult
   cli/           Repl(각 명령 구현은 Repl의 메서드), Command
   Main.java      객체 조립(composition root)
-src/test/java/ledger/...   main과 같은 패키지 구조
-src/test/resources/        테스트 픽스처
+src/test/java/ledger/...   main과 같은 패키지 구조(테스트 파일은 @TempDir에 직접 쓴다. src/test/resources/는 없다)
 samples/bank.csv           데모용 은행 CSV
 .gitignore
 ```
@@ -114,7 +122,7 @@ quit
 
 - 금액은 `12000`, `12,000` 둘 다 받는다.
 - `today`는 주입된 `Clock` 기준이다(테스트에서 날짜 고정).
-- `add`/`import` 직후, 예산을 넘은 (카테고리, 월)마다 경고 1줄을 출력한다.
+- `add`/`import` 직후, 이번에 추가한 지출이 걸린 (카테고리, 월) 중 예산을 넘은 것마다 경고 1줄을 출력한다. 이번 추가와 무관한 (카테고리, 월)은 이미 초과였어도 다시 경고하지 않는다.
 - `report`의 카테고리 행은 지출만, 금액 내림차순, 비율은 지출 합계 대비 정수 %(`HALF_UP`).
 - 예산은 세션 메모리에만 둔다. 항목은 `add`/`import` 시점에 바로 저장한다(write-through). `quit`은 저장된 항목 수를 보고하고 종료 코드 0을 반환한다.
 - 저장 파일 경로는 `main`의 첫 인자, 없으면 `ledger.csv`.
@@ -236,14 +244,14 @@ bye
 
 ## 9. 진행 방식 (학습자용)
 
-1. Git 리포를 만든다. 00단계는 빈 리포에서 시작한다.
-2. 단계마다 단계 문서의 "읽을 글"을 읽고, `steps/NN/`의 파일을 복사한다.
-3. 완료 기준을 통과하면 커밋한다. (00~02는 README의 확인 명령으로 대신한다.)
-4. 막히면 해당 단계 문서의 실무 체크포인트를 다시 보고, 정답 리포의 `step-NN-done` 태그와 비교한다.
+1. 이 리포를 내려받고, 과제용 Git 리포(학습자 리포)를 따로 만든다. 00단계는 빈 리포에서 시작한다.
+2. 단계마다 단계 문서의 "읽을 글"을 읽고, `steps/NN/`의 파일을 학습자 리포에 복사한다.
+3. 완료 기준을 통과하면 커밋한다. (00~02는 단계 문서 완료 기준의 확인 명령으로 대신한다.)
+4. 막히면 해당 단계 문서의 실무 체크포인트를 다시 보고, `git diff step-NN-start step-NN-done`으로 정답과 비교한다.
 
 ## 10. 제작 순서
 
-1. 정답 리포: 00~09 전 단계를 끝까지 구현하고 단계별 커밋·태그를 정리한다. (설계가 실제로 9시간 안에 되는지 검증) 작업 방식은 11절의 제작 규칙을 따른다.
+1. 정답 코드: 00~09 전 단계를 끝까지 구현하고 단계별 커밋·태그를 정리한다. (설계가 실제로 9시간 안에 되는지 검증) 작업 방식은 11절의 제작 규칙을 따른다.
 2. `steps/NN/` 만들기: 각 단계에서 새로 추가된 테스트·픽스처와, 새 클래스의 스텁을 뽑는다(11절 5번).
 3. `docs/NN-*.md` 작성 (5절 형식). "읽을 글"의 링크가 살아 있는지 확인한다.
 4. 루트 `README.md` 작성
@@ -254,7 +262,7 @@ bye
 한 번에 전 단계를 생성하면 뒤쪽 단계의 품질과 단계 간 정합성이 무너진다. 아래 규칙으로 나눠서 만든다.
 
 1. **한 번에 한 단계만 만든다.** 단계 하나를 끝내기 전에 다음 단계를 시작하지 않는다.
-2. **검증된 코드 위에서 쌓는다.** 단계 N 작업은 `step-(N-1)-done` 태그에서 시작한다. 단, 그 뒤에 API 태그(`api-vN`)가 있으면 가장 최근 API 태그에서 시작한다. API 태그는 `docs/API.md`의 고정 시그니처를 바꾼 커밋에 `api-v1`, `api-v2`, … 순번으로 단다. 단계를 끝낼 때마다 `./gradlew test`(00~02는 README의 확인 명령)를 실제로 실행해 통과를 확인하고, 통과 후에만 `step-NN-done` 태그를 찍는다. 실행하지 않은 것을 통과했다고 쓰지 않는다.
+2. **검증된 코드 위에서 쌓는다.** 단계 N 작업은 `step-(N-1)-done` 태그에서 시작한다. 단, 그 뒤에 API 태그(`api-vN`)가 있으면 가장 최근 API 태그에서 시작한다. API 태그는 `docs/API.md`의 고정 시그니처를 바꾼 커밋에 `api-v1`, `api-v2`, … 순번으로 단다. 단계를 끝낼 때마다 `./gradlew test`(00~02는 단계 문서 완료 기준의 확인 명령)를 실제로 실행해 통과를 확인하고, 통과 후에만 `step-NN-done` 태그를 찍는다. 실행하지 않은 것을 통과했다고 쓰지 않는다.
 3. **세션을 나눈다.** 권장 구분은 다음과 같다. 세션 시작 시에는 이 문서, `docs/API.md`, `docs/BUILD-LOG.md`, 시작 태그(2번)의 코드만 읽는다.
    - 세션 A: 00~03 (환경 전환 구간. 가장 신중하게)
    - 세션 B: 04~07 (도메인과 구조)
