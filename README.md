@@ -1,3 +1,5 @@
+> 이 저장소의 과제들은 AI를 통해 만들어졌습니다.
+
 # ledger: 자바 실무 적응 과제
 
 터미널 가계부 `ledger` 하나를 10단계에 걸쳐 키우며 Baeldung의 [Get Started with Java](https://www.baeldung.com/get-started-with-java-series) 시리즈를 익힌다. 각 단계에서 시리즈의 글을 읽고, 그 내용을 가계부 코드에 적용한다. 마지막에는 `./gradlew run`으로 동작하는 CLI 가계부가 나온다.
